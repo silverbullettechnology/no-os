@@ -39,9 +39,14 @@
 #ifndef DAC_CORE_API_H_
 #define DAC_CORE_API_H_
 
+#include "ad9361_api.h"
+
 /******************************************************************************/
 /********************** Macros and Constants Definitions **********************/
 /******************************************************************************/
+#define ADI_REG_PCORE_VER		0x0000
+#define ADI_REG_PCORE_ID		0x0004
+
 #define ADI_REG_RSTN			0x0040
 #define ADI_RSTN				(1 << 0)
 
@@ -121,21 +126,22 @@ enum {
 #define AXI_DMAC_IRQ_SOT				(1 << 0)
 #define AXI_DMAC_IRQ_EOT				(1 << 1)
 
-struct dds_state
-{
-	uint32_t	cached_freq[8];
-	uint32_t	cached_phase[8];
-	uint32_t	cached_scale[8];
-	uint32_t	*dac_clk;
-};
+//struct dds_state
+//{
+//	uint32_t	cached_freq[8];
+//	uint32_t	cached_phase[8];
+//	uint32_t	cached_scale[8];
+//	uint32_t	*dac_clk;
+//};
 
 /******************************************************************************/
 /************************ Functions Declarations ******************************/
 /******************************************************************************/
-void dac_init(uint8_t data_sel);
-void dds_set_frequency(uint32_t chan, uint32_t freq);
-void dds_set_phase(uint32_t chan, uint32_t phase);
-void dds_set_scale(uint32_t chan, uint32_t scale);
-void dds_update(void);
+void dac_init(uint8_t data_sel, struct ad9361_rf_phy *phy);
+void dac_dma_loop();
+void dds_set_frequency(uint32_t chan, uint32_t freq, struct ad9361_rf_phy *phy);
+void dds_set_phase(uint32_t chan, uint32_t phase, struct ad9361_rf_phy *phy);
+void dds_set_scale(uint32_t chan, uint32_t scale, struct ad9361_rf_phy *phy);
+void dds_update(struct ad9361_rf_phy *phy);
 
 #endif

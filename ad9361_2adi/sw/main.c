@@ -47,6 +47,10 @@
 #include "dac_core.h"
 #include "console.h"
 #include "command.h"
+#include "rxtest.h"
+#include "xspips.h"
+#include "ad9361.h"
+
 
 /******************************************************************************/
 /************************ Variables Definitions *******************************/
@@ -154,7 +158,7 @@ AD9361_InitParam default_init_param = {
 	/* Temperature Sensor Control */
 	256,	//temp_sense_decimation *** adi,temp-sense-decimation
 	1000,	//temp_sense_measurement_interval_ms *** adi,temp-sense-measurement-interval-ms
-	0xCE,	//temp_sense_offset_signed *** adi,temp-sense-offset-signed
+	0x00,     //0xCE	//temp_sense_offset_signed *** adi,temp-sense-offset-signed
 	1,		//temp_sense_periodic_measurement_enable *** adi,temp-sense-periodic-measurement-enable
 	/* Control Out Setup */
 	0xFF,	//ctrl_outs_enable_mask *** adi,ctrl-outs-enable-mask
@@ -220,40 +224,157 @@ AD9361_TXFIRConfig tx_fir_config = {
 	 -356, -1182, -307, 558, 271, -4, 219, 107,
 	 -315, -284, 86, 186, 35, -37, -6, -4} // tx_coef[64];
 };
-struct ad9361_rf_phy *ad9361_phy;
+struct ad9361_rf_phy *ad9361_phy_0;
+struct ad9361_rf_phy *ad9361_phy_1;
+
+extern XSpiPs			spi_instance;
+
 
 /***************************************************************************//**
  * @brief main
 *******************************************************************************/
 int main(void)
 {
+	int temp;
+
+	xil_printf("************ MAIN START *********************\n\r");
 	Xil_ICacheEnable();
 	Xil_DCacheEnable();
 
 	gpio_init(GPIO_DEVICE_ID);
-	gpio_direction(54 + 46, 1);
+//	gpio_direction(54 + 46, 1);
+
+	xil_printf("************ TOGGLE LED *********************\n\r");
+
+	// SDRDC pins
+	gpio_direction(LED0_pin, 1);   //
+	gpio_direction(LED1_pin, 1);   //
+	gpio_direction(LED2_pin, 1);   //
+	gpio_direction(LED3_pin, 1);   //
+	gpio_direction(AD0_reset_pin, 1);   //
+	gpio_direction(AD1_reset_pin, 1);   //
+
+	gpio_direction(AD0_enable_pin, 1);   //
+	gpio_direction(AD0_txnrx_pin, 1);   //
+	gpio_direction(AD1_enable_pin, 1);   //
+	gpio_direction(AD1_txnrx_pin, 1);   //
+
+	gpio_data(AD0_enable_pin, 1);   //
+	gpio_data(AD0_txnrx_pin, 1);   //
+	gpio_data(AD1_enable_pin, 1);   //
+	gpio_data(AD1_txnrx_pin, 1);   //
+
+	gpio_data(LED0_pin, 1);
+	gpio_data(AD0_reset_pin, 1);
+	gpio_data(AD1_reset_pin, 1);
+
+	sleep(1);
+
+	gpio_data(LED0_pin, 0);
+	gpio_data(AD0_reset_pin, 0);
+	gpio_data(AD1_reset_pin, 0);
+
+	sleep(1);
+
+	gpio_data(LED0_pin, 1);
+	gpio_data(AD0_reset_pin, 1);
+	gpio_data(AD1_reset_pin, 1);
+
+	xil_printf("************ SPI INIT *********************\n\r");
 	spi_init(SPI_DEVICE_ID, 1, 0);
 
-	adc_init();
-	dac_init(DATA_SEL_DDS);
 
-	ad9361_phy = ad9361_init(&default_init_param);
+	xil_printf("************ SPI SS TEST *********************\n\r");
+	set_spi_ss(0); xil_printf ("9361_chip_0 initial  %x \n\r", ad9361_spi_read(REG_CTRL_OUTPUT_ENABLE));
+	set_spi_ss(1); xil_printf ("9361_chip_1 initial  %x \n\r", ad9361_spi_read(REG_CTRL_OUTPUT_ENABLE));
+	set_spi_ss(0);	ad9361_spi_write(REG_CTRL_OUTPUT_ENABLE, 0xaa);
+	set_spi_ss(1);	ad9361_spi_write(REG_CTRL_OUTPUT_ENABLE, 0x55);
+	set_spi_ss(0);	xil_printf ("9361_chip_0 after  %x \n\r", ad9361_spi_read(REG_CTRL_OUTPUT_ENABLE));
+	set_spi_ss(1);	xil_printf ("9361_chip_1 after  %x \n\r", ad9361_spi_read(REG_CTRL_OUTPUT_ENABLE));
 
-	ad9361_set_tx_fir_config(ad9361_phy, tx_fir_config);
-	ad9361_set_rx_fir_config(ad9361_phy, rx_fir_config);
+
+	xil_printf("************ ADC INIT *********************\n\r");
+	adc_init(0);
+	adc_init(1);
+
+//	xil_printf("************ DAC INIT *********************\n\r");
+//	dac_init(DATA_SEL_DDS);
+
+	xil_printf("************ 9361 INIT_0 *********************\n\r");
+	set_spi_ss(0);
+	ad9361_phy_0 = ad9361_init(&default_init_param, AD0_reset_pin, 0);
+	ad9361_set_tx_fir_config(ad9361_phy_0, tx_fir_config);
+	ad9361_set_rx_fir_config(ad9361_phy_0, rx_fir_config);
+	ad9361_set_en_state_machine_mode(ad9361_phy_0,ENSM_STATE_ALERT);
+	ad9361_set_en_state_machine_mode(ad9361_phy_0,ENSM_STATE_FDD);
+
+	xil_printf("************ 9361 INIT_1 *********************\n\r");
+	set_spi_ss(1);
+	ad9361_phy_1 = ad9361_init(&default_init_param, AD1_reset_pin, 1);
+
+	ad9361_phy_1->pdata->port_ctrl.lvds_invert[0] = 0xEF;
+	ad9361_phy_1->pdata->port_ctrl.lvds_invert[1] = 0x0F;
+	ad9361_pp_port_setup(ad9361_phy_1, false);
+
+	ad9361_set_tx_fir_config(ad9361_phy_1, tx_fir_config);
+	ad9361_set_rx_fir_config(ad9361_phy_1, rx_fir_config);
+	ad9361_set_en_state_machine_mode(ad9361_phy_1,ENSM_STATE_ALERT);
+	ad9361_set_en_state_machine_mode(ad9361_phy_1,ENSM_STATE_FDD);
+
+	// Read version and id registers from both adi controllers
+	xil_printf ("9361_ctrl_0  %x:%x \n\r", axiadc_read(ADI_REG_PCORE_VER, 0), axiadc_read(ADI_REG_PCORE_ID, 0));
+	xil_printf ("9361_ctrl_1  %x:%x \n\r", axiadc_read(ADI_REG_PCORE_VER, 1), axiadc_read(ADI_REG_PCORE_ID, 1));
+//	main_xadcps();
+
+
+
 
 #ifdef DAC_DMA
-	dac_init(DATA_SEL_DMA);
+	dac_init(DATA_SEL_DMA, ad9361_phy_0);
+	dac_init(DATA_SEL_DMA, ad9361_phy_1);
 #else
-	dac_init(DATA_SEL_DDS);
+//	dac_init(DATA_SEL_DDS, ad9361_phy_0);
+//	dac_init(DATA_SEL_DDS, ad9361_phy_1);
 #endif
 
 #ifdef CAPTURE_SCRIPT
-	adc_capture(16384, ADC_DDR_BASEADDR);
+	adc_capture(16384, ADC_DDR_BASEADDR, 0);
+	adc_capture(16384, ADC_DDR_BASEADDR, 1);
 	while(1);
 #endif
-	get_help(NULL, 0);
 
+
+	xil_printf ("Select ADI device to use (0 or 1):\r\n");
+	temp = console_get_num(received_cmd);
+
+	if (temp==0) {
+		xil_printf("************ 9361_0_CTRL *********************\n\r");
+		xil_printf ("Enter Data Clock Frequency (in Hz):");
+		temp = console_get_num(received_cmd);
+		xil_printf ("%d\n\r", temp);
+
+		set_spi_ss(0);
+		ad9361_set_tx_sampling_freq (ad9361_phy_0, temp);
+
+		//rxtest_main(ad9361_phy_0);
+		txrxtest_main(ad9361_phy_0);
+	}
+	else {
+		xil_printf("************ 9361_1_CTRL *********************\n\r");
+		xil_printf ("Enter Data Clock Frequency (in Hz):");
+		temp = console_get_num(received_cmd);
+		xil_printf ("%d\n\r", temp);
+
+		set_spi_ss(1);
+		ad9361_set_tx_sampling_freq (ad9361_phy_1, temp);
+
+		//rxtest_main(ad9361_phy_1);
+		txrxtest_main(ad9361_phy_1);
+	}
+
+while(1);
+	get_help(NULL, 0);
+/*
 	while(1)
 	{
 		console_get_command(received_cmd);
@@ -277,7 +398,7 @@ int main(void)
 			console_print("Invalid command!\n");
 		}
 	}
-
+*/
 	Xil_DCacheDisable();
 	Xil_ICacheDisable();
 

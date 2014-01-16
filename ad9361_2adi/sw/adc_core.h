@@ -43,6 +43,9 @@
 /********************** Macros and Constants Definitions **********************/
 /******************************************************************************/
 /* ADC COMMON */
+#define ADI_REG_PCORE_VER		0x0000
+#define ADI_REG_PCORE_ID		0x0004
+
 #define ADI_REG_RSTN			0x0040
 #define ADI_RSTN				(1 << 0)
 #define ADI_MMCM_RSTN 			(1 << 1)
@@ -134,9 +137,13 @@
 /******************************************************************************/
 /************************ Functions Declarations ******************************/
 /******************************************************************************/
-void adc_init(void);
-int32_t adc_capture(uint32_t size, uint32_t start_address);
-void axiadc_write(uint32_t reg, uint32_t val);
-uint32_t axiadc_read(uint32_t reg);
+void adc_init(uint32_t adi_num);
+int32_t adc_capture(uint32_t size, uint32_t start_address, uint32_t adi_num);
+
+//void axiadc_write(uint32_t reg, uint32_t val);
+void axiadc_write(uint32_t reg, uint32_t val, uint32_t adi_num);
+
+//uint32_t axiadc_read(uint32_t reg);
+uint32_t axiadc_read(uint32_t reg, uint32_t adi_num);
 
 #endif

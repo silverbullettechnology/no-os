@@ -51,6 +51,21 @@
 #include "xil_printf.h"
 #include "ad9361.h"
 
+
+#define LED0_pin      (54 + 0)
+#define LED1_pin      (54 + 1)
+#define LED2_pin      (54 + 2)
+#define LED3_pin      (54 + 3)
+#define AD0_reset_pin (54 + 4)
+#define AD1_reset_pin (54 + 5)
+
+#define AD0_enable_pin (54 + 45)
+#define AD0_txnrx_pin  (54 + 46)
+#define AD1_enable_pin (54 + 52)
+#define AD1_txnrx_pin  (54 + 53)
+
+
+
 /******************************************************************************/
 /********************** Macros and Constants Definitions **********************/
 /******************************************************************************/
@@ -143,6 +158,10 @@ void gpio_direction(uint8_t pin, uint8_t direction);
 void gpio_data(uint8_t pin, uint8_t data);
 bool gpio_is_valid(int number);
 void gpio_set_value(unsigned gpio, int value);
+
+int32_t get_spi_ss();
+void    set_spi_ss(int32_t ss);
+
 int clk_prepare_enable(struct clk *clk);
 unsigned long clk_get_rate(struct ad9361_rf_phy *phy,
 						   struct refclk_scale *clk_priv);

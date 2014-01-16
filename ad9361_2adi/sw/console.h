@@ -58,6 +58,7 @@ void console_print(char* str, ...);
 
 /* Reads one command from console. */
 void console_get_command(char* command);
+int console_get_num (char* command);
 
 /* Compares two commands and returns the type of the command. */
 int console_check_commands(char*	   received_cmd,

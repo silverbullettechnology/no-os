@@ -59,6 +59,7 @@ XSpiPs			spi_instance;
 XGpioPs_Config	*gpio_config;
 XGpioPs			gpio_instance;
 
+int32_t spi_ss;
 /***************************************************************************//**
  * @brief udelay
 *******************************************************************************/
@@ -74,6 +75,18 @@ void mdelay(unsigned long msecs)
 {
 	usleep(msecs * 1000);
 }
+
+
+int32_t get_spi_ss()
+{
+	return spi_ss;
+}
+
+void set_spi_ss(int32_t ss)
+{
+	spi_ss = ss;
+}
+
 
 /***************************************************************************//**
  * @brief spi_init
@@ -121,8 +134,16 @@ int32_t spi_read(uint8_t *data,
 	base_addr = spi_config->BaseAddress;
 	control_val = XSpiPs_ReadReg(base_addr, XSPIPS_CR_OFFSET);
 
-	XSpiPs_WriteReg(base_addr, XSPIPS_CR_OFFSET,
-					control_val & ~(1 << XSPIPS_CR_SSCTRL_SHIFT));
+	if (spi_ss == 0)
+		XSpiPs_WriteReg(base_addr, XSPIPS_CR_OFFSET,
+					control_val & ~(1 << XSPIPS_CR_SSCTRL_SHIFT));    // slave 0 selected
+
+	if (spi_ss == 1)
+		XSpiPs_WriteReg(base_addr, XSPIPS_CR_OFFSET,
+					control_val & ~(2 << XSPIPS_CR_SSCTRL_SHIFT));    // slave 1 selected
+
+
+//	xil_printf ("*****   Slave select:  %x/%x \n\r", XSpiPs_GetSlaveSelect(&spi_instance), spi_ss);
 
 	XSpiPs_WriteReg(base_addr, XSPIPS_TXWR_OFFSET, 0x01);
 
@@ -145,7 +166,7 @@ int32_t spi_read(uint8_t *data,
 
 	XSpiPs_WriteReg(base_addr, XSPIPS_SR_OFFSET, XSPIPS_IXR_TXOW_MASK);
 
-	XSpiPs_WriteReg(base_addr, XSPIPS_CR_OFFSET, control_val);
+	XSpiPs_WriteReg(base_addr, XSPIPS_CR_OFFSET, control_val);     // deselect slave
 
 	cnt = 0;
 	while(cnt < bytes_number)

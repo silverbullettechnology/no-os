@@ -141,6 +141,9 @@ void get_help(double* param, char param_no) // "help?" command
 	}
 }
 
+
+
+#if 0
 /**************************************************************************//***
  * @brief Displays all available commands.
  *
@@ -1001,3 +1004,62 @@ void set_dds_tx2_tone2_scale(double* param, char param_no)	// dds_tx2_tone2_scal
 	else
 		show_invalid_param_message(1);
 }
+
+#endif
+
+
+void get_register(double* param, char param_no){};
+void get_tx_lo_freq(double* param, char param_no){};;
+void set_tx_lo_freq(double* param, char param_no){};
+void get_tx_samp_freq(double* param, char param_no){};
+void set_tx_samp_freq(double* param, char param_no){};
+void get_tx_rf_bandwidth(double* param, char param_no){};
+void set_tx_rf_bandwidth(double* param, char param_no){};
+void get_tx1_attenuation(double* param, char param_no){};
+void set_tx1_attenuation(double* param, char param_no){};
+void get_tx2_attenuation(double* param, char param_no){};
+void set_tx2_attenuation(double* param, char param_no){};
+void get_tx_fir_en(double* param, char param_no){};
+void set_tx_fir_en(double* param, char param_no){};
+void get_rx_lo_freq(double* param, char param_no){};
+void set_rx_lo_freq(double* param, char param_no){};
+void get_rx_samp_freq(double* param, char param_no){};
+void set_rx_samp_freq(double* param, char param_no){};
+void get_rx_rf_bandwidth(double* param, char param_no){};
+void set_rx_rf_bandwidth(double* param, char param_no){};
+void get_rx1_gc_mode(double* param, char param_no){};
+void set_rx1_gc_mode(double* param, char param_no){};
+void get_rx2_gc_mode(double* param, char param_no){};
+void set_rx2_gc_mode(double* param, char param_no){};
+void get_rx1_rf_gain(double* param, char param_no){};
+void set_rx1_rf_gain(double* param, char param_no){};
+void get_rx2_rf_gain(double* param, char param_no){};
+void set_rx2_rf_gain(double* param, char param_no){};
+void get_rx_fir_en(double* param, char param_no){};
+void set_rx_fir_en(double* param, char param_no){};
+void get_dds_tx1_tone1_freq(double* param, char param_no){};
+void set_dds_tx1_tone1_freq(double* param, char param_no){};
+void get_dds_tx1_tone2_freq(double* param, char param_no){};
+void set_dds_tx1_tone2_freq(double* param, char param_no){};
+void get_dds_tx1_tone1_phase(double* param, char param_no){};
+void set_dds_tx1_tone1_phase(double* param, char param_no){};
+void get_dds_tx1_tone2_phase(double* param, char param_no){};
+void set_dds_tx1_tone2_phase(double* param, char param_no){};
+void get_dds_tx1_tone1_scale(double* param, char param_no){};
+void set_dds_tx1_tone1_scale(double* param, char param_no){};
+void get_dds_tx1_tone2_scale(double* param, char param_no){};
+void set_dds_tx1_tone2_scale(double* param, char param_no){};
+void get_dds_tx2_tone1_freq(double* param, char param_no){};
+void set_dds_tx2_tone1_freq(double* param, char param_no){};
+void get_dds_tx2_tone2_freq(double* param, char param_no){};
+void set_dds_tx2_tone2_freq(double* param, char param_no){};
+void get_dds_tx2_tone1_phase(double* param, char param_no){};
+void set_dds_tx2_tone1_phase(double* param, char param_no){};
+void get_dds_tx2_tone2_phase(double* param, char param_no){};
+void set_dds_tx2_tone2_phase(double* param, char param_no){};
+void get_dds_tx2_tone1_scale(double* param, char param_no){};
+void set_dds_tx2_tone1_scale(double* param, char param_no){};
+void dds_tx2_tone2_scale(double* param, char param_no){};
+void set_dds_tx2_tone2_scale(double* param, char param_no){};
+
+

@@ -297,6 +297,61 @@ void console_get_command(char* command)
 	}
 }
 
+
+
+static int pow10(int n)
+{
+    static int pow10[15] = {
+        1,
+        10,
+        100,
+        1000,
+        10000,
+        100000,
+        1000000,
+        10000000,
+        100000000,
+        1000000000,
+        10000000000,
+        100000000000,
+        1000000000000,
+        10000000000000,
+        100000000000000
+    };
+
+    return pow10[n];
+}
+
+int console_get_num(char* command)
+{
+	char		  received_char	= 0;
+	unsigned char char_number	= 0;
+    int num = 0;
+    int num_digits;
+    int i;
+
+	while((received_char != '\n') && (received_char != '\r'))
+	{
+		uart_read_char(&received_char);
+		command[char_number++] = received_char;
+	}
+
+	char_number--;
+
+	for (i=0; i< char_number; i++)
+	{
+//		printf("%c, %x, %d, %d\n\r", command[i], command[i], i, char_number-1-i);
+		num = num + ((int)command[i] - 0x30) * pow10(char_number-1-i);
+	}
+
+	return(num);
+}
+
+
+
+
+
+
 /***************************************************************************//**
  * @brief Compares two commands and returns the type of the command.
  *

@@ -3118,6 +3118,14 @@ enum {
 	ID_AD9361,
 };
 
+struct dds_state
+{
+	uint32_t	cached_freq[8];
+	uint32_t	cached_phase[8];
+	uint32_t	cached_scale[8];
+	uint32_t	*dac_clk;
+};
+
 struct ad9361_rf_phy {
 	struct clk 		*clk_refin;
 	struct clk 		*clks[NUM_AD9361_CLKS];
@@ -3148,6 +3156,9 @@ struct ad9361_rf_phy {
 	bool			rfdc_track_en;
 	bool			bbdc_track_en;
 	bool			quad_track_en;
+	struct dds_state dds_st;
+	u8			pcore_id;
+
 };
 
 struct refclk_scale {
@@ -3158,6 +3169,8 @@ struct refclk_scale {
 	enum ad9361_clocks 	source;
 	enum ad9361_clocks 	parent_source;
 };
+
+
 
 /******************************************************************************/
 /************************ Functions Declarations ******************************/
@@ -3214,6 +3227,10 @@ int ad9361_load_fir_filter_coef(struct ad9361_rf_phy *phy,
 				       u32 ntaps, short *coef);
 int ad9361_validate_enable_fir(struct ad9361_rf_phy *phy);
 int ad9361_post_setup(struct ad9361_rf_phy *phy);
+
+int ad9361_pp_port_setup(struct ad9361_rf_phy *phy, bool restore_c3);
+
+int ad9361_get_temp(struct ad9361_rf_phy *phy);
 
 #endif
 

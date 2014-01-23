@@ -49,7 +49,7 @@
  * @return A structure that contains the AD9361 current state in case of
  *         success, negative error code otherwise.
  */
-struct ad9361_rf_phy *ad9361_init (AD9361_InitParam *init_param)
+struct ad9361_rf_phy *ad9361_init (AD9361_InitParam *init_param, int gpio_resetb, u8 pcore_id)
 {
 	struct ad9361_rf_phy *phy;
 	int32_t ret = 0;
@@ -70,6 +70,8 @@ struct ad9361_rf_phy *ad9361_init (AD9361_InitParam *init_param)
 	if (!phy->pdata) {
 		return ERR_PTR(-ENOMEM);
 	}
+
+	phy->pcore_id = pcore_id;
 
 	/* Reference Clock */
 	phy->clk_refin->rate = init_param->reference_clk_rate;
@@ -221,7 +223,7 @@ struct ad9361_rf_phy *ad9361_init (AD9361_InitParam *init_param)
 	phy->pdata->port_ctrl.lvds_bias_ctrl |= (init_param->lvds_rx_onchip_termination_enable << 5);
 
 	phy->pdata->debug_mode = true;
-	phy->pdata->gpio_resetb = 54 + 46;			// FIXME
+	phy->pdata->gpio_resetb = gpio_resetb;    //AD1_reset_pin; //54 + 46;			// FIXME
 	phy->pdata->port_ctrl.digital_io_ctrl = 0;
 	phy->pdata->port_ctrl.lvds_invert[0] = 0xFF;
 	phy->pdata->port_ctrl.lvds_invert[1] = 0x0F;

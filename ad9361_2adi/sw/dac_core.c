@@ -1186,8 +1186,8 @@ static int dds_default_setup(uint32_t chan, uint32_t phase,
 	do_div(val64, 360000);
 	val |= ADI_DDS_INIT(val64);
 
-	dac_write(ADI_REG_CHAN_CNTRL_1_IIOCHAN(chan), ADI_DDS_SCALE(scale), adi_num);  //fix later
-	dac_write(ADI_REG_CHAN_CNTRL_2_IIOCHAN(chan), val,  adi_num);  //fix later
+	dac_write(ADI_REG_CHAN_CNTRL_1_IIOCHAN(chan), ADI_DDS_SCALE(scale), adi_num);
+	dac_write(ADI_REG_CHAN_CNTRL_2_IIOCHAN(chan), val,  adi_num);
 
 	return 0;
 }
@@ -1211,14 +1211,14 @@ void dac_init(uint8_t data_sel, struct ad9361_rf_phy *phy)
 
 	adi_num = phy->pcore_id;
 
-	dac_write(ADI_REG_RSTN, 0x0, adi_num);  //fix later
-	dac_write(ADI_REG_RSTN, ADI_RSTN, adi_num);  //fix later
+	dac_write(ADI_REG_RSTN, 0x0, adi_num);
+	dac_write(ADI_REG_RSTN, ADI_RSTN, adi_num);
 
-	dac_write(ADI_REG_RATECNTRL, ADI_RATE(3), adi_num);  //fix later
+	dac_write(ADI_REG_RATECNTRL, ADI_RATE(3), adi_num);
 
 	phy->dds_st.dac_clk = &phy->clks[TX_SAMPL_CLK]->rate;
 
-	dac_write(ADI_REG_CNTRL_1, 0, adi_num);  //fix later
+	dac_write(ADI_REG_CNTRL_1, 0, adi_num);
 	switch (data_sel) {
 	case DATA_SEL_DDS:
 		dds_default_setup(DDS_CHAN_TX1_I_F1, 90000, 1000000, 4, phy);
@@ -1229,11 +1229,13 @@ void dac_init(uint8_t data_sel, struct ad9361_rf_phy *phy)
 		dds_default_setup(DDS_CHAN_TX2_I_F2, 90000, 1000000, 4, phy);
 		dds_default_setup(DDS_CHAN_TX2_Q_F1, 0, 1000000, 4, phy);
 		dds_default_setup(DDS_CHAN_TX2_Q_F2, 0, 1000000, 4, phy);
-		dac_write(ADI_REG_CNTRL_2, ADI_DATA_SEL(DATA_SEL_DDS), adi_num);  //fix later
+		dac_write(ADI_REG_CNTRL_2, ADI_DATA_SEL(DATA_SEL_DDS), adi_num);
 		break;
 	case DATA_SEL_DMA:
 		tx_count = sizeof(sine_lut) / sizeof(uint16_t);
-//		dac_write(ADI_REG_VDMA_FRMCNT, tx_count * 8, adi_num);  //fix later
+//  	    xil_printf("dac_init: tx_count: %d \r\n", tx_count);
+
+//		dac_write(ADI_REG_VDMA_FRMCNT, tx_count * 8, adi_num);
 		for(index = 0; index < (tx_count * 2); index+=2)
 		{
 			index_i1 = index;
@@ -1255,83 +1257,21 @@ void dac_init(uint8_t data_sel, struct ad9361_rf_phy *phy)
 			Xil_Out32(DAC_DDR_BASEADDR + (index + 1) * 4, data_i2 | data_q2);
 		}
 		Xil_DCacheFlush();
-		dac_dma_write(AXI_DMAC_REG_CTRL, AXI_DMAC_CTRL_ENABLE, adi_num);  //fix later
-		dac_dma_write(AXI_DMAC_REG_SRC_ADDRESS, DAC_DDR_BASEADDR, adi_num);  //fix later
-		dac_dma_write(AXI_DMAC_REG_SRC_STRIDE, 0x0, adi_num);  //fix later
-		dac_dma_write(AXI_DMAC_REG_X_LENGTH, (tx_count * 8) - 1, adi_num);  //fix later
-		dac_dma_write(AXI_DMAC_REG_Y_LENGTH, 0x0, adi_num);  //fix later
-		dac_dma_write(AXI_DMAC_REG_START_TRANSFER, 0x1, adi_num);  //fix later
-		dac_write(ADI_REG_CNTRL_2, ADI_DATA_SEL(DATA_SEL_DMA), adi_num);  //fix later
+		dac_dma_write(AXI_DMAC_REG_CTRL, AXI_DMAC_CTRL_ENABLE, adi_num);
+		dac_dma_write(AXI_DMAC_REG_SRC_ADDRESS, DAC_DDR_BASEADDR, adi_num);
+		dac_dma_write(AXI_DMAC_REG_SRC_STRIDE, 0x0, adi_num);
+		dac_dma_write(AXI_DMAC_REG_X_LENGTH, (tx_count * 8) - 1, adi_num);
+		dac_dma_write(AXI_DMAC_REG_Y_LENGTH, 0x0, adi_num);
+		dac_dma_write(AXI_DMAC_REG_START_TRANSFER, 0x1, adi_num);
+		dac_write(ADI_REG_CNTRL_2, ADI_DATA_SEL(DATA_SEL_DMA), adi_num);
 		break;
 	default:
 		break;
 	}
-	dac_write(ADI_REG_CNTRL_1, ADI_ENABLE, adi_num);  //fix later
+	dac_write(ADI_REG_CNTRL_1, ADI_ENABLE, adi_num);
 }
 
 
-
-/***************************************************************************//**
- * @brief dac_dma_loop
-*******************************************************************************/
-/*
-void dac_dma_loop()
-{
-	uint32_t tx_count;
-	uint32_t index;
-	uint32_t index_i1;
-	uint32_t index_q1;
-	uint32_t index_i2;
-	uint32_t index_q2;
-	uint32_t data_i1;
-	uint32_t data_q1;
-	uint32_t data_i2;
-	uint32_t data_q2;
-
-	dac_write(ADI_REG_RSTN, 0x0);
-	dac_write(ADI_REG_RSTN, ADI_RSTN);
-
-	dac_write(ADI_REG_RATECNTRL, ADI_RATE(3));
-
-	dds_st.dac_clk = &ad9361_phy->clks[TX_SAMPL_CLK]->rate;
-
-	dac_write(ADI_REG_CNTRL_1, 0);
-
-//	case DATA_SEL_DMA:
-	tx_count = sizeof(sine_lut) / sizeof(uint16_t);
-	dac_write(ADI_REG_VDMA_FRMCNT, tx_count * 8);
-	for(index = 0; index < (tx_count * 2); index+=2)
-	{
-		index_i1 = index;
-		index_q1 = index + (tx_count / 4);
-		if(index_q1 >= (tx_count * 2))
-			index_q1 -= (tx_count * 2);
-		data_i1 = (sine_lut[index_i1 / 2] << 20);
-		data_q1 = (sine_lut[index_q1 / 2] << 4);
-		Xil_Out32(DAC_DDR_BASEADDR + index * 4, data_i1 | data_q1);
-
-		index_i2 = index_i1 + (tx_count / 2);
-		index_q2 = index_q1 + (tx_count / 2);
-		if(index_i2 >= (tx_count * 2))
-			index_i2 -= (tx_count * 2);
-		if(index_q2 >= (tx_count * 2))
-			index_q2 -= (tx_count * 2);
-		data_i2 = (sine_lut[index_i2 / 2] << 20);
-		data_q2 = (sine_lut[index_q2 / 2] << 4);
-		Xil_Out32(DAC_DDR_BASEADDR + (index + 1) * 4, data_i2 | data_q2);
-	}
-	Xil_DCacheFlush();
-	dac_dma_write(AXI_DMAC_REG_CTRL, AXI_DMAC_CTRL_ENABLE);
-	dac_dma_write(AXI_DMAC_REG_SRC_ADDRESS, DAC_DDR_BASEADDR);
-	dac_dma_write(AXI_DMAC_REG_SRC_STRIDE, 0x0);
-	dac_dma_write(AXI_DMAC_REG_X_LENGTH, (tx_count * 8) - 1);
-	dac_dma_write(AXI_DMAC_REG_Y_LENGTH, 0x0);
-	dac_dma_write(AXI_DMAC_REG_START_TRANSFER, 0x1);
-
-// herwin: removed for loopback test
-	dac_write(ADI_REG_CNTRL_1, ADI_ENABLE);
-}
-*/
 
 
 /***************************************************************************//**
@@ -1345,16 +1285,16 @@ void dds_set_frequency(uint32_t chan, uint32_t freq, struct ad9361_rf_phy *phy)
 
 	adi_num = phy->pcore_id;
 
-	dac_read(ADI_REG_CNTRL_1, &ctrl_reg, adi_num);  //fix later
+	dac_read(ADI_REG_CNTRL_1, &ctrl_reg, adi_num);
 	phy->dds_st.cached_freq[chan] = freq;
-	dac_write(ADI_REG_CNTRL_1, 0, adi_num);  //fix later
-	dac_read(ADI_REG_CHAN_CNTRL_2_IIOCHAN(chan), &reg, adi_num);  //fix later
+	dac_write(ADI_REG_CNTRL_1, 0, adi_num);
+	dac_read(ADI_REG_CHAN_CNTRL_2_IIOCHAN(chan), &reg, adi_num);
 	reg &= ~ADI_DDS_INCR(~0);
 	val64 = (u64) freq * 0xFFFFULL;
 	do_div(val64, *phy->dds_st.dac_clk);
 	reg |= ADI_DDS_INCR(val64) | 1;
-	dac_write(ADI_REG_CHAN_CNTRL_2_IIOCHAN(chan), reg, adi_num);  //fix later
-	dac_write(ADI_REG_CNTRL_1, ctrl_reg, adi_num);  //fix later
+	dac_write(ADI_REG_CHAN_CNTRL_2_IIOCHAN(chan), reg, adi_num);
+	dac_write(ADI_REG_CNTRL_1, ctrl_reg, adi_num);
 }
 
 /***************************************************************************//**
@@ -1368,16 +1308,16 @@ void dds_set_phase(uint32_t chan, uint32_t phase, struct ad9361_rf_phy *phy)
 
 	adi_num = phy->pcore_id;
 
-	dac_read(ADI_REG_CNTRL_1, &ctrl_reg, adi_num);  //fix later
+	dac_read(ADI_REG_CNTRL_1, &ctrl_reg, adi_num);
 	phy->dds_st.cached_phase[chan] = phase;
-	dac_write(ADI_REG_CNTRL_1, 0, adi_num);  //fix later
-	dac_read(ADI_REG_CHAN_CNTRL_2_IIOCHAN(chan), &reg, adi_num);  //fix later
+	dac_write(ADI_REG_CNTRL_1, 0, adi_num);
+	dac_read(ADI_REG_CHAN_CNTRL_2_IIOCHAN(chan), &reg, adi_num);
 	reg &= ~ADI_DDS_INIT(~0);
 	val64 = (u64) phase * 0x10000ULL + (360000 / 2);
 	do_div(val64, 360000);
 	reg |= ADI_DDS_INIT(val64);
-	dac_write(ADI_REG_CHAN_CNTRL_2_IIOCHAN(chan), reg, adi_num);  //fix later
-	dac_write(ADI_REG_CNTRL_1, ctrl_reg, adi_num);  //fix later
+	dac_write(ADI_REG_CHAN_CNTRL_2_IIOCHAN(chan), reg, adi_num);
+	dac_write(ADI_REG_CNTRL_1, ctrl_reg, adi_num);
 }
 
 /***************************************************************************//**
@@ -1390,11 +1330,11 @@ void dds_set_scale(uint32_t chan, uint32_t scale, struct ad9361_rf_phy *phy)
 
 	adi_num = phy->pcore_id;
 
-	dac_read(ADI_REG_CNTRL_1, &ctrl_reg, adi_num);  //fix later
+	dac_read(ADI_REG_CNTRL_1, &ctrl_reg, adi_num);
 	phy->dds_st.cached_scale[chan] = scale;
-	dac_write(ADI_REG_CNTRL_1, 0, adi_num);  //fix later
-	dac_write(ADI_REG_CHAN_CNTRL_1_IIOCHAN(chan), ADI_DDS_SCALE(scale), adi_num);  //fix later
-	dac_write(ADI_REG_CNTRL_1, ctrl_reg, adi_num);  //fix later
+	dac_write(ADI_REG_CNTRL_1, 0, adi_num);
+	dac_write(ADI_REG_CHAN_CNTRL_1_IIOCHAN(chan), ADI_DDS_SCALE(scale), adi_num);
+	dac_write(ADI_REG_CNTRL_1, ctrl_reg, adi_num);
 }
 
 /***************************************************************************//**

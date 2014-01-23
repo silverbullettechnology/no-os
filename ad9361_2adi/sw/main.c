@@ -69,7 +69,7 @@ char				received_cmd[30] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 
 AD9361_InitParam default_init_param = {
 	/* Reference Clock */
-	40000000UL,	//reference_clk_rate
+	38400000UL,	//reference_clk_rate
 	/* Base Configuration */
 	1,		//two_rx_two_tx_mode_enable *** adi,2rx-2tx-mode-enable
 	1,		//frequency_division_duplex_mode_enable *** adi,frequency-division-duplex-mode-enable
@@ -158,7 +158,7 @@ AD9361_InitParam default_init_param = {
 	/* Temperature Sensor Control */
 	256,	//temp_sense_decimation *** adi,temp-sense-decimation
 	1000,	//temp_sense_measurement_interval_ms *** adi,temp-sense-measurement-interval-ms
-	0x00,     //0xCE	//temp_sense_offset_signed *** adi,temp-sense-offset-signed
+	0xBF,     //0xCE	//temp_sense_offset_signed *** adi,temp-sense-offset-signed
 	1,		//temp_sense_periodic_measurement_enable *** adi,temp-sense-periodic-measurement-enable
 	/* Control Out Setup */
 	0xFF,	//ctrl_outs_enable_mask *** adi,ctrl-outs-enable-mask
@@ -236,10 +236,33 @@ extern XSpiPs			spi_instance;
 int main(void)
 {
 	int temp;
+	u8  delay_vec[16];
 
 	xil_printf("************ MAIN START *********************\n\r");
 	Xil_ICacheEnable();
 	Xil_DCacheEnable();
+
+
+	// make sure that PL clocks are set correctly
+//	xil_printf ("SLCR_LOCKSTA (%08x): %08x\r\n", 0xf800000C, Xil_In32(0xf800000C));
+	Xil_Out32(0xf8000008, 0xdf0d); // unlock System Level Control Registers
+//	xil_printf ("SLCR_LOCKSTA (%08x): %08x\r\n", 0xf800000C, Xil_In32(0xf800000C));
+	Xil_Out32(0xf8000170, 0x00100A00);
+	Xil_Out32(0xf8000180, 0x00100400);
+	Xil_Out32(0xf8000190, 0x00100400);
+	Xil_Out32(0xf8000004, 0x767B); // lock System Level Control Registers
+//	xil_printf ("SLCR_LOCKSTA (%08x): %08x\r\n", 0xf800000C, Xil_In32(0xf800000C));
+
+	xil_printf (" ***** Checking PL Clocks\r\n");
+	xil_printf ("IO_PLL_CTRL (%08x): %08x\r\n", 0xf8000108, Xil_In32(0xf8000108));
+	xil_printf ("PLL_STATUS (%08x):  %08x\r\n",  0xf800010c, Xil_In32(0xf800010c));
+	xil_printf ("IO_PLL_CFG (%08x):  %08x\r\n",  0xf8000118, Xil_In32(0xf8000118));
+	xil_printf ("FPGA0_CLK_CTRL (%08x): %08x\r\n", 0xf8000170, Xil_In32(0xf8000170));
+	xil_printf ("FPGA1_CLK_CTRL (%08x): %08x\r\n", 0xf8000180, Xil_In32(0xf8000180));
+	xil_printf ("FPGA2_CLK_CTRL (%08x): %08x\r\n", 0xf8000190, Xil_In32(0xf8000190));
+
+	xil_printf ("Enter to start test:");
+	temp = console_get_num(received_cmd);
 
 	gpio_init(GPIO_DEVICE_ID);
 //	gpio_direction(54 + 46, 1);
@@ -343,38 +366,71 @@ int main(void)
 	while(1);
 #endif
 
-
 	xil_printf ("Select ADI device to use (0 or 1):\r\n");
 	temp = console_get_num(received_cmd);
 
 	if (temp==0) {
+		set_spi_ss(0);
+
 		xil_printf("************ 9361_0_CTRL *********************\n\r");
 		xil_printf ("Enter Data Clock Frequency (in Hz):");
 		temp = console_get_num(received_cmd);
 		xil_printf ("%d\n\r", temp);
-
-		set_spi_ss(0);
 		ad9361_set_tx_sampling_freq (ad9361_phy_0, temp);
 
+		xil_printf ("\n\r");
+		xil_printf (" ***** Calculate 9361_0 RX eye\r\n");
+		ad9361_get_rx_sampling_freq (ad9361_phy_0, (uint32_t*)&temp);
+		xil_printf("9361_0 SAMP CLK RATE: %d \n\r", temp);
+		while (get_eye_rx (ad9361_phy_0, delay_vec) == 0);
+		set_eye_rx (ad9361_phy_0, delay_vec);
+
+		xil_printf ("\n\r");
+		xil_printf (" ***** Calculate 9361_0 TX eye\r\n");
+		if (get_eye_tx (ad9361_phy_0, delay_vec))
+			set_eye_tx (ad9361_phy_0, delay_vec);
+		else
+			ad9361_spi_write(REG_TX_CLOCK_DATA_DELAY, 0x40);
+
+		xil_printf ("Enter to start test:");
+		temp = console_get_num(received_cmd);
 		//rxtest_main(ad9361_phy_0);
 		txrxtest_main(ad9361_phy_0);
 	}
 	else {
+		set_spi_ss(1);
+
 		xil_printf("************ 9361_1_CTRL *********************\n\r");
 		xil_printf ("Enter Data Clock Frequency (in Hz):");
 		temp = console_get_num(received_cmd);
 		xil_printf ("%d\n\r", temp);
-
-		set_spi_ss(1);
 		ad9361_set_tx_sampling_freq (ad9361_phy_1, temp);
 
+		xil_printf ("\n\r");
+		xil_printf (" ***** Calculate 9361_1 RX eye\r\n");
+		ad9361_get_rx_sampling_freq (ad9361_phy_0, (uint32_t*)&temp);
+		xil_printf("9361_1 SAMP CLK RATE: %d \n\r", temp);
+		while (get_eye_rx (ad9361_phy_1, delay_vec) == 0);
+		set_eye_rx (ad9361_phy_1, delay_vec);
+
+		xil_printf ("\n\r");
+		xil_printf (" ***** Calculate 9361_1 TX eye\r\n");
+		if (get_eye_tx (ad9361_phy_1, delay_vec))
+			set_eye_tx (ad9361_phy_1, delay_vec);
+		else
+			ad9361_spi_write(REG_TX_CLOCK_DATA_DELAY, 0x40);
+
+		xil_printf ("Enter to start test:");
+		temp = console_get_num(received_cmd);
 		//rxtest_main(ad9361_phy_1);
 		txrxtest_main(ad9361_phy_1);
 	}
-
 while(1);
+
+
+
 	get_help(NULL, 0);
-/*
+
 	while(1)
 	{
 		console_get_command(received_cmd);
@@ -398,7 +454,7 @@ while(1);
 			console_print("Invalid command!\n");
 		}
 	}
-*/
+
 	Xil_DCacheDisable();
 	Xil_ICacheDisable();
 

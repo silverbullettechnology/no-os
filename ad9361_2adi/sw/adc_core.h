@@ -61,6 +61,19 @@
 #define ADI_MUX_OVER_RANGE		(1 << 1)
 #define ADI_STATUS				(1 << 0)
 
+#define ADI_REG_DELAY_CNTRL		0x0060
+#define ADI_DELAY_SEL			(1 << 17)
+#define ADI_DELAY_RWN			(1 << 16)
+#define ADI_DELAY_ADDR(x)		(((x) & 0x000000FF) << 8)
+#define ADI_TO_DELAY_ADDR(x)	(((x) >> 8) & 0x000000FF)
+#define ADI_DELAY_WDATA(x)		(((x) & 0x0000001F) << 0)
+#define ADI_TO_DELAY_WDATA(x)	(((x) >> 0) & 0x0000001F)
+
+#define ADI_REG_DELAY_STATUS	0x0064
+#define ADI_DELAY_LOCKED		(1 << 9)
+#define ADI_DELAY_STATUS		(1 << 8)
+#define ADI_TO_DELAY_RDATA(x)	(((x) >> 0) & 0x0000001F)
+
 #define ADI_REG_DMA_CNTRL		0x0080
 #define ADI_DMA_STREAM			(1 << 1)
 #define ADI_DMA_START			(1 << 0)

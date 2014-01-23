@@ -49,6 +49,7 @@
 #include "stdlib.h"
 
 #include "dac_core.h"
+#include "xtime_l.h"
 
 
 /***************************************************************************//**
@@ -205,6 +206,13 @@ int32_t adc_capture(uint32_t size, uint32_t start_address, uint32_t adi_num)
 	uint32_t reg_val;
 	uint32_t transfer_id;
 
+	XTime tEnd, tCur;
+	int timeout_sec = 2;
+
+	XTime_GetTime(&tCur);
+	tEnd  = tCur + ((XTime) timeout_sec) * COUNTS_PER_SECOND;
+
+
 	adc_dma_write(AXI_DMAC_REG_CTRL, 0x0, adi_num);
 	adc_dma_write(AXI_DMAC_REG_CTRL, AXI_DMAC_CTRL_ENABLE, adi_num);
 
@@ -226,6 +234,8 @@ int32_t adc_capture(uint32_t size, uint32_t start_address, uint32_t adi_num)
 	/* Wait until the new transfer is queued. */
 	do {
 		adc_dma_read(AXI_DMAC_REG_START_TRANSFER, &reg_val, adi_num);
+	    XTime_GetTime(&tCur);
+	    if (tCur > tEnd) return (-1);
 	}
 	while(reg_val == 1);
 //	xil_printf("************ transfer QUEUE'd *********************\n\r");
@@ -233,14 +243,19 @@ int32_t adc_capture(uint32_t size, uint32_t start_address, uint32_t adi_num)
 	/* Wait until the current transfer is completed. */
 	do {
 		adc_dma_read(AXI_DMAC_REG_IRQ_PENDING, &reg_val, adi_num);
+	    XTime_GetTime(&tCur);
+	    if (tCur > tEnd) return (-1);
 	}
 	while(reg_val != (AXI_DMAC_IRQ_SOT | AXI_DMAC_IRQ_EOT));
+
 //	xil_printf("************ transfer COMPLETE'd *********************\n\r");
 	adc_dma_write(AXI_DMAC_REG_IRQ_PENDING, reg_val, adi_num);
 
 	/* Wait until the transfer with the ID transfer_id is completed. */
 	do {
 		adc_dma_read(AXI_DMAC_REG_TRANSFER_DONE, &reg_val, adi_num);
+	    XTime_GetTime(&tCur);
+	    if (tCur > tEnd) return (-1);
 	}
 	while((reg_val & (1 << transfer_id)) != (1 << transfer_id));
 

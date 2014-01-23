@@ -103,14 +103,19 @@ command cmd_list[] = {
 	{"dds_tx2_tone1_scale=", "Sets the DDS TX2 Tone 1 scale.", "", set_dds_tx2_tone1_scale},
 	{"dds_tx2_tone2_scale?", "Gets current DDS TX2 Tone 2 scale.", "", dds_tx2_tone2_scale},
 	{"dds_tx2_tone2_scale=", "Sets the DDS TX2 Tone 2 scale.", "", set_dds_tx2_tone2_scale},
+	{"ad?", "Gets the id number of currently active AD9361 chip.", "", get_ad_num},
+	{"ad=", "Sets the id number of currently active AD9361 chip.", "", set_ad_num},
 };
 const char cmd_no = (sizeof(cmd_list) / sizeof(command));
 
 /******************************************************************************/
 /************************ Variables Definitions *******************************/
 /******************************************************************************/
-extern struct dds_state dds_st;
-extern struct ad9361_rf_phy *ad9361_phy;
+//extern struct dds_state dds_st;
+struct ad9361_rf_phy *ad9361_phy  =0 ;
+
+extern struct ad9361_rf_phy *ad9361_phy_0;
+extern struct ad9361_rf_phy *ad9361_phy_1;
 
 /**************************************************************************//***
  * @brief Show the invalid parameter message.
@@ -143,7 +148,7 @@ void get_help(double* param, char param_no) // "help?" command
 
 
 
-#if 0
+
 /**************************************************************************//***
  * @brief Displays all available commands.
  *
@@ -153,6 +158,12 @@ void get_register(double* param, char param_no) // "register?" command
 {
 	uint16_t reg_addr;
 	uint8_t reg_val;
+
+	if (ad9361_phy==0) {
+		console_print ("Error: no AD9361 device selected\n");
+		return;
+	}
+
 
 	if(param_no >= 1)
 	{
@@ -173,6 +184,12 @@ void get_tx_lo_freq(double* param, char param_no) // "tx_lo_freq?" command
 {
 	uint64_t lo_freq_hz;
 
+	if (ad9361_phy==0) {
+		console_print ("Error: no AD9361 device selected\n");
+		return;
+	}
+
+
 	ad9361_get_tx_lo_freq(ad9361_phy, &lo_freq_hz);
 	lo_freq_hz /= 1000000;
 	console_print("tx_lo_freq=%d\n", (uint32_t)lo_freq_hz);
@@ -186,6 +203,12 @@ void get_tx_lo_freq(double* param, char param_no) // "tx_lo_freq?" command
 void set_tx_lo_freq(double* param, char param_no) // "tx_lo_freq=" command
 {
 	uint64_t lo_freq_hz;
+
+	if (ad9361_phy==0) {
+		console_print ("Error: no AD9361 device selected\n");
+		return;
+	}
+
 
 	if(param_no >= 1)
 	{
@@ -206,6 +229,12 @@ void get_tx_samp_freq(double* param, char param_no) // "tx_samp_freq?" command
 {
 	uint32_t sampling_freq_hz;
 
+	if (ad9361_phy==0) {
+		console_print ("Error: no AD9361 device selected\n");
+		return;
+	}
+
+
 	ad9361_get_tx_sampling_freq(ad9361_phy, &sampling_freq_hz);
 	console_print("tx_samp_freq=%d\n", sampling_freq_hz);
 }
@@ -219,12 +248,17 @@ void set_tx_samp_freq(double* param, char param_no) // "tx_samp_freq=" command
 {
 	uint32_t sampling_freq_hz;
 
+	if (ad9361_phy==0) {
+		console_print ("Error: no AD9361 device selected\n");
+		return;
+	}
+
 	if(param_no >= 1)
 	{
 		sampling_freq_hz = (uint32_t)param[0];
 		ad9361_set_tx_sampling_freq(ad9361_phy, sampling_freq_hz);
 		ad9361_get_tx_sampling_freq(ad9361_phy, &sampling_freq_hz);
-		dds_update();
+		dds_update(ad9361_phy);
 		console_print("tx_samp_freq=%d\n", sampling_freq_hz);
 	}
 	else
@@ -240,6 +274,11 @@ void get_tx_rf_bandwidth(double* param, char param_no) // "tx_rf_bandwidth?" com
 {
 	uint32_t bandwidth_hz;
 
+	if (ad9361_phy==0) {
+		console_print ("Error: no AD9361 device selected\n");
+		return;
+	}
+
 	ad9361_get_tx_rf_bandwidth(ad9361_phy, &bandwidth_hz);
 	console_print("tx_rf_bandwidth=%d\n", bandwidth_hz);
 }
@@ -252,6 +291,11 @@ void get_tx_rf_bandwidth(double* param, char param_no) // "tx_rf_bandwidth?" com
 void set_tx_rf_bandwidth(double* param, char param_no) // "tx_rf_bandwidth=" command
 {
 	uint32_t bandwidth_hz;
+
+	if (ad9361_phy==0) {
+		console_print ("Error: no AD9361 device selected\n");
+		return;
+	}
 
 	if(param_no >= 1)
 	{
@@ -271,6 +315,11 @@ void get_tx1_attenuation(double* param, char param_no) // "tx1_attenuation?" com
 {
 	uint32_t attenuation_mdb;
 
+	if (ad9361_phy==0) {
+		console_print ("Error: no AD9361 device selected\n");
+		return;
+	}
+
 	ad9361_get_tx_attenuation(ad9361_phy, 0, &attenuation_mdb);
 	console_print("tx1_attenuation=%d\n", attenuation_mdb);
 }
@@ -283,6 +332,11 @@ void get_tx1_attenuation(double* param, char param_no) // "tx1_attenuation?" com
 void set_tx1_attenuation(double* param, char param_no) // "tx1_attenuation=" command
 {
 	uint32_t attenuation_mdb;
+
+	if (ad9361_phy==0) {
+		console_print ("Error: no AD9361 device selected\n");
+		return;
+	}
 
 	if(param_no >= 1)
 	{
@@ -303,6 +357,11 @@ void get_tx2_attenuation(double* param, char param_no) // "tx1_attenuation?" com
 {
 	uint32_t attenuation_mdb;
 
+	if (ad9361_phy==0) {
+		console_print ("Error: no AD9361 device selected\n");
+		return;
+	}
+
 	ad9361_get_tx_attenuation(ad9361_phy, 1, &attenuation_mdb);
 	console_print("tx2_attenuation=%d\n", attenuation_mdb);
 }
@@ -315,6 +374,11 @@ void get_tx2_attenuation(double* param, char param_no) // "tx1_attenuation?" com
 void set_tx2_attenuation(double* param, char param_no) // "tx1_attenuation=" command
 {
 	uint32_t attenuation_mdb;
+
+	if (ad9361_phy==0) {
+		console_print ("Error: no AD9361 device selected\n");
+		return;
+	}
 
 	if(param_no >= 1)
 	{
@@ -335,6 +399,11 @@ void get_tx_fir_en(double* param, char param_no) // "tx_fir_en?" command
 {
 	uint8_t en_dis;
 
+	if (ad9361_phy==0) {
+		console_print ("Error: no AD9361 device selected\n");
+		return;
+	}
+
 	ad9361_get_tx_fir_en_dis(ad9361_phy, &en_dis);
 	console_print("tx_fir_en=%d\n", en_dis);
 }
@@ -347,6 +416,11 @@ void get_tx_fir_en(double* param, char param_no) // "tx_fir_en?" command
 void set_tx_fir_en(double* param, char param_no) // "tx_fir_en=" command
 {
 	uint8_t en_dis;
+
+	if (ad9361_phy==0) {
+		console_print ("Error: no AD9361 device selected\n");
+		return;
+	}
 
 	if(param_no >= 1)
 	{
@@ -367,6 +441,11 @@ void get_rx_lo_freq(double* param, char param_no) // "rx_lo_freq?" command
 {
 	uint64_t lo_freq_hz;
 
+	if (ad9361_phy==0) {
+		console_print ("Error: no AD9361 device selected\n");
+		return;
+	}
+
 	ad9361_get_rx_lo_freq(ad9361_phy, &lo_freq_hz);
 	lo_freq_hz /= 1000000;
 	console_print("rx_lo_freq=%d\n", (uint32_t)lo_freq_hz);
@@ -380,6 +459,11 @@ void get_rx_lo_freq(double* param, char param_no) // "rx_lo_freq?" command
 void set_rx_lo_freq(double* param, char param_no) // "rx_lo_freq=" command
 {
 	uint64_t lo_freq_hz;
+
+	if (ad9361_phy==0) {
+		console_print ("Error: no AD9361 device selected\n");
+		return;
+	}
 
 	if(param_no >= 1)
 	{
@@ -400,6 +484,11 @@ void get_rx_samp_freq(double* param, char param_no) // "rx_samp_freq?" command
 {
 	uint32_t sampling_freq_hz;
 
+	if (ad9361_phy==0) {
+		console_print ("Error: no AD9361 device selected\n");
+		return;
+	}
+
 	ad9361_get_rx_sampling_freq(ad9361_phy, &sampling_freq_hz);
 	console_print("rx_samp_freq=%d\n", sampling_freq_hz);
 }
@@ -413,12 +502,17 @@ void set_rx_samp_freq(double* param, char param_no) // "rx_samp_freq=" command
 {
 	uint32_t sampling_freq_hz;
 
+	if (ad9361_phy==0) {
+		console_print ("Error: no AD9361 device selected\n");
+		return;
+	}
+
 	if(param_no >= 1)
 	{
 		sampling_freq_hz = (uint32_t)param[0];
 		ad9361_set_rx_sampling_freq(ad9361_phy, sampling_freq_hz);
 		ad9361_get_rx_sampling_freq(ad9361_phy, &sampling_freq_hz);
-		dds_update();
+		dds_update(ad9361_phy);
 		console_print("rx_samp_freq=%d\n", sampling_freq_hz);
 	}
 	else
@@ -434,6 +528,11 @@ void get_rx_rf_bandwidth(double* param, char param_no) // "rx_rf_bandwidth?" com
 {
 	uint32_t bandwidth_hz;
 
+	if (ad9361_phy==0) {
+		console_print ("Error: no AD9361 device selected\n");
+		return;
+	}
+
 	ad9361_get_rx_rf_bandwidth(ad9361_phy, &bandwidth_hz);
 	console_print("rx_rf_bandwidth=%d\n", bandwidth_hz);
 }
@@ -446,6 +545,11 @@ void get_rx_rf_bandwidth(double* param, char param_no) // "rx_rf_bandwidth?" com
 void set_rx_rf_bandwidth(double* param, char param_no) // "rx_rf_bandwidth=" command
 {
 	uint32_t bandwidth_hz;
+
+	if (ad9361_phy==0) {
+		console_print ("Error: no AD9361 device selected\n");
+		return;
+	}
 
 	if(param_no >= 1)
 	{
@@ -466,6 +570,11 @@ void get_rx1_gc_mode(double* param, char param_no) // "rx1_gc_mode?" command
 {
 	uint8_t gc_mode;
 
+	if (ad9361_phy==0) {
+		console_print ("Error: no AD9361 device selected\n");
+		return;
+	}
+
 	ad9361_get_rx_gain_control_mode(ad9361_phy, 0, &gc_mode);
 	console_print("rx1_gc_mode=%d\n", gc_mode);
 }
@@ -478,6 +587,11 @@ void get_rx1_gc_mode(double* param, char param_no) // "rx1_gc_mode?" command
 void set_rx1_gc_mode(double* param, char param_no) // "rx1_gc_mode=" command
 {
 	uint8_t gc_mode;
+
+	if (ad9361_phy==0) {
+		console_print ("Error: no AD9361 device selected\n");
+		return;
+	}
 
 	if(param_no >= 1)
 	{
@@ -498,6 +612,11 @@ void get_rx2_gc_mode(double* param, char param_no) // "rx2_gc_mode?" command
 {
 	uint8_t gc_mode;
 
+	if (ad9361_phy==0) {
+		console_print ("Error: no AD9361 device selected\n");
+		return;
+	}
+
 	ad9361_get_rx_gain_control_mode(ad9361_phy, 1, &gc_mode);
 	console_print("rx2_gc_mode=%d\n", gc_mode);
 }
@@ -510,6 +629,11 @@ void get_rx2_gc_mode(double* param, char param_no) // "rx2_gc_mode?" command
 void set_rx2_gc_mode(double* param, char param_no) // "rx2_gc_mode=" command
 {
 	uint8_t gc_mode;
+
+	if (ad9361_phy==0) {
+		console_print ("Error: no AD9361 device selected\n");
+		return;
+	}
 
 	if(param_no >= 1)
 	{
@@ -530,6 +654,11 @@ void get_rx1_rf_gain(double* param, char param_no) // "rx1_rf_gain?" command
 {
 	int32_t gain_db;
 
+	if (ad9361_phy==0) {
+		console_print ("Error: no AD9361 device selected\n");
+		return;
+	}
+
 	ad9361_get_rx_rf_gain (ad9361_phy, 0, &gain_db);
 	console_print("rx1_rf_gain=%d\n", gain_db);
 }
@@ -542,6 +671,11 @@ void get_rx1_rf_gain(double* param, char param_no) // "rx1_rf_gain?" command
 void set_rx1_rf_gain(double* param, char param_no) // "rx1_rf_gain=" command
 {
 	int32_t gain_db;
+
+	if (ad9361_phy==0) {
+		console_print ("Error: no AD9361 device selected\n");
+		return;
+	}
 
 	if(param_no >= 1)
 	{
@@ -562,6 +696,11 @@ void get_rx2_rf_gain(double* param, char param_no) // "rx2_rf_gain?" command
 {
 	int32_t gain_db;
 
+	if (ad9361_phy==0) {
+		console_print ("Error: no AD9361 device selected\n");
+		return;
+	}
+
 	ad9361_get_rx_rf_gain (ad9361_phy, 1, &gain_db);
 	console_print("rx2_rf_gain=%d\n", gain_db);
 }
@@ -574,6 +713,11 @@ void get_rx2_rf_gain(double* param, char param_no) // "rx2_rf_gain?" command
 void set_rx2_rf_gain(double* param, char param_no) // "rx2_rf_gain=" command
 {
 	int32_t gain_db;
+
+	if (ad9361_phy==0) {
+		console_print ("Error: no AD9361 device selected\n");
+		return;
+	}
 
 	if(param_no >= 1)
 	{
@@ -594,6 +738,11 @@ void get_rx_fir_en(double* param, char param_no) // "rx_fir_en?" command
 {
 	uint8_t en_dis;
 
+	if (ad9361_phy==0) {
+		console_print ("Error: no AD9361 device selected\n");
+		return;
+	}
+
 	ad9361_get_rx_fir_en_dis(ad9361_phy, &en_dis);
 	console_print("rx_fir_en=%d\n", en_dis);
 }
@@ -606,6 +755,11 @@ void get_rx_fir_en(double* param, char param_no) // "rx_fir_en?" command
 void set_rx_fir_en(double* param, char param_no) // "rx_fir_en=" command
 {
 	uint8_t en_dis;
+
+	if (ad9361_phy==0) {
+		console_print ("Error: no AD9361 device selected\n");
+		return;
+	}
 
 	if(param_no >= 1)
 	{
@@ -624,7 +778,7 @@ void set_rx_fir_en(double* param, char param_no) // "rx_fir_en=" command
 *******************************************************************************/
 void get_dds_tx1_tone1_freq(double* param, char param_no)	// dds_tx1_tone1_freq?
 {
-	uint32_t freq = dds_st.cached_freq[DDS_CHAN_TX1_I_F1];
+	uint32_t freq = ad9361_phy->dds_st.cached_freq[DDS_CHAN_TX1_I_F1];
 
 	console_print("dds_tx1_tone1_freq=%d\n", freq);
 }
@@ -638,10 +792,15 @@ void set_dds_tx1_tone1_freq(double* param, char param_no)	// dds_tx1_tone1_freq=
 {
 	uint32_t freq = (uint32_t)param[0];
 
+	if (ad9361_phy==0) {
+		console_print ("Error: no AD9361 device selected\n");
+		return;
+	}
+
 	if(param_no >= 1)
 	{
-		dds_set_frequency(DDS_CHAN_TX1_I_F1, freq);
-		dds_set_frequency(DDS_CHAN_TX1_Q_F1, freq);
+		dds_set_frequency(DDS_CHAN_TX1_I_F1, freq, ad9361_phy);
+		dds_set_frequency(DDS_CHAN_TX1_Q_F1, freq, ad9361_phy);
 		console_print("dds_tx1_tone1_freq=%d\n", freq);
 	}
 	else
@@ -655,7 +814,7 @@ void set_dds_tx1_tone1_freq(double* param, char param_no)	// dds_tx1_tone1_freq=
 *******************************************************************************/
 void get_dds_tx1_tone2_freq(double* param, char param_no)	// dds_tx1_tone2_freq?
 {
-	uint32_t freq = dds_st.cached_freq[DDS_CHAN_TX1_I_F2];
+	uint32_t freq = ad9361_phy->dds_st.cached_freq[DDS_CHAN_TX1_I_F2];
 
 	console_print("dds_tx1_tone2_freq=%d\n", freq);
 }
@@ -669,10 +828,15 @@ void set_dds_tx1_tone2_freq(double* param, char param_no)	// dds_tx1_tone2_freq=
 {
 	uint32_t freq = (uint32_t)param[0];
 
+	if (ad9361_phy==0) {
+		console_print ("Error: no AD9361 device selected\n");
+		return;
+	}
+
 	if(param_no >= 1)
 	{
-		dds_set_frequency(DDS_CHAN_TX1_I_F2, freq);
-		dds_set_frequency(DDS_CHAN_TX1_Q_F2, freq);
+		dds_set_frequency(DDS_CHAN_TX1_I_F2, freq, ad9361_phy);
+		dds_set_frequency(DDS_CHAN_TX1_Q_F2, freq, ad9361_phy);
 		console_print("dds_tx1_tone2_freq=%d\n", freq);
 	}
 	else
@@ -686,7 +850,7 @@ void set_dds_tx1_tone2_freq(double* param, char param_no)	// dds_tx1_tone2_freq=
 *******************************************************************************/
 void get_dds_tx1_tone1_phase(double* param, char param_no)	// dds_tx1_tone1_phase?
 {
-	uint32_t phase = dds_st.cached_phase[DDS_CHAN_TX1_I_F1];
+	uint32_t phase = ad9361_phy->dds_st.cached_phase[DDS_CHAN_TX1_I_F1];
 
 	phase /= 1000;
 	console_print("dds_tx1_tone1_phase=%d\n", phase);
@@ -701,13 +865,18 @@ void set_dds_tx1_tone1_phase(double* param, char param_no)	// dds_tx1_tone1_phas
 {
 	int32_t phase = (uint32_t)param[0];
 
+	if (ad9361_phy==0) {
+		console_print ("Error: no AD9361 device selected\n");
+		return;
+	}
+
 	if(param_no >= 1)
 	{
-		dds_set_phase(DDS_CHAN_TX1_I_F1, (uint32_t)(phase * 1000));
+		dds_set_phase(DDS_CHAN_TX1_I_F1, (uint32_t)(phase * 1000), ad9361_phy);
 		if ((phase - 90) < 0)
 			phase += 360;
-		dds_set_phase(DDS_CHAN_TX1_Q_F1, (uint32_t)((phase - 90) * 1000));
-		phase = dds_st.cached_phase[DDS_CHAN_TX1_I_F1] / 1000;
+		dds_set_phase(DDS_CHAN_TX1_Q_F1, (uint32_t)((phase - 90) * 1000), ad9361_phy);
+		phase = ad9361_phy->dds_st.cached_phase[DDS_CHAN_TX1_I_F1] / 1000;
 		console_print("dds_tx1_tone1_phase=%d\n", phase);
 	}
 	else
@@ -721,7 +890,7 @@ void set_dds_tx1_tone1_phase(double* param, char param_no)	// dds_tx1_tone1_phas
 *******************************************************************************/
 void get_dds_tx1_tone2_phase(double* param, char param_no)	// dds_tx1_tone2_phase?
 {
-	uint32_t phase = dds_st.cached_phase[DDS_CHAN_TX1_I_F2];
+	uint32_t phase = ad9361_phy->dds_st.cached_phase[DDS_CHAN_TX1_I_F2];
 
 	phase /= 1000;
 	console_print("dds_tx1_tone2_phase=%d\n", phase);
@@ -736,13 +905,18 @@ void set_dds_tx1_tone2_phase(double* param, char param_no)	// dds_tx1_tone2_phas
 {
 	int32_t phase = (uint32_t)param[0];
 
+	if (ad9361_phy==0) {
+		console_print ("Error: no AD9361 device selected\n");
+		return;
+	}
+
 	if(param_no >= 1)
 	{
-		dds_set_phase(DDS_CHAN_TX1_I_F2, (uint32_t)(phase * 1000));
+		dds_set_phase(DDS_CHAN_TX1_I_F2, (uint32_t)(phase * 1000), ad9361_phy);
 		if ((phase - 90) < 0)
 			phase += 360;
-		dds_set_phase(DDS_CHAN_TX1_Q_F2, (uint32_t)((phase - 90) * 1000));
-		phase = dds_st.cached_phase[DDS_CHAN_TX1_I_F2] / 1000;
+		dds_set_phase(DDS_CHAN_TX1_Q_F2, (uint32_t)((phase - 90) * 1000), ad9361_phy);
+		phase = ad9361_phy->dds_st.cached_phase[DDS_CHAN_TX1_I_F2] / 1000;
 		console_print("dds_tx1_tone2_phase=%d\n", phase);
 	}
 	else
@@ -756,7 +930,7 @@ void set_dds_tx1_tone2_phase(double* param, char param_no)	// dds_tx1_tone2_phas
 *******************************************************************************/
 void get_dds_tx1_tone1_scale(double* param, char param_no)	// dds_tx1_tone1_scale?
 {
-	uint32_t scale = dds_st.cached_scale[DDS_CHAN_TX1_I_F1];
+	uint32_t scale = ad9361_phy->dds_st.cached_scale[DDS_CHAN_TX1_I_F1];
 
 	console_print("dds_tx1_tone1_scale=%d\n", scale);
 }
@@ -770,10 +944,15 @@ void set_dds_tx1_tone1_scale(double* param, char param_no)	// dds_tx1_tone1_scal
 {
 	uint32_t scale = (uint32_t)param[0];
 
+	if (ad9361_phy==0) {
+		console_print ("Error: no AD9361 device selected\n");
+		return;
+	}
+
 	if(param_no >= 1)
 	{
-		dds_set_scale(DDS_CHAN_TX1_I_F1, scale);
-		dds_set_scale(DDS_CHAN_TX1_Q_F1, scale);
+		dds_set_scale(DDS_CHAN_TX1_I_F1, scale, ad9361_phy);
+		dds_set_scale(DDS_CHAN_TX1_Q_F1, scale, ad9361_phy);
 		console_print("dds_tx1_tone1_scale=%d\n", scale);
 	}
 	else
@@ -787,7 +966,7 @@ void set_dds_tx1_tone1_scale(double* param, char param_no)	// dds_tx1_tone1_scal
 *******************************************************************************/
 void get_dds_tx1_tone2_scale(double* param, char param_no)	// dds_tx1_tone2_scale?
 {
-	uint32_t scale = dds_st.cached_scale[DDS_CHAN_TX1_I_F2];
+	uint32_t scale = ad9361_phy->dds_st.cached_scale[DDS_CHAN_TX1_I_F2];
 
 	console_print("dds_tx1_tone2_scale=%d\n", scale);
 }
@@ -801,10 +980,15 @@ void set_dds_tx1_tone2_scale(double* param, char param_no)	// dds_tx1_tone2_scal
 {
 	uint32_t scale = (uint32_t)param[0];
 
+	if (ad9361_phy==0) {
+		console_print ("Error: no AD9361 device selected\n");
+		return;
+	}
+
 	if(param_no >= 1)
 	{
-		dds_set_scale(DDS_CHAN_TX1_I_F2, scale);
-		dds_set_scale(DDS_CHAN_TX1_Q_F2, scale);
+		dds_set_scale(DDS_CHAN_TX1_I_F2, scale, ad9361_phy);
+		dds_set_scale(DDS_CHAN_TX1_Q_F2, scale, ad9361_phy);
 		console_print("dds_tx1_tone2_scale=%d\n", scale);
 	}
 	else
@@ -818,7 +1002,7 @@ void set_dds_tx1_tone2_scale(double* param, char param_no)	// dds_tx1_tone2_scal
 *******************************************************************************/
 void get_dds_tx2_tone1_freq(double* param, char param_no)	// dds_tx2_tone1_freq?
 {
-	uint32_t freq = dds_st.cached_freq[DDS_CHAN_TX2_I_F1];
+	uint32_t freq = ad9361_phy->dds_st.cached_freq[DDS_CHAN_TX2_I_F1];
 
 	console_print("dds_tx2_tone1_freq=%d\n", freq);
 }
@@ -832,10 +1016,15 @@ void set_dds_tx2_tone1_freq(double* param, char param_no)	// dds_tx2_tone1_freq=
 {
 	uint32_t freq = (uint32_t)param[0];
 
+	if (ad9361_phy==0) {
+		console_print ("Error: no AD9361 device selected\n");
+		return;
+	}
+
 	if(param_no >= 1)
 	{
-		dds_set_frequency(DDS_CHAN_TX2_I_F1, freq);
-		dds_set_frequency(DDS_CHAN_TX2_Q_F1, freq);
+		dds_set_frequency(DDS_CHAN_TX2_I_F1, freq, ad9361_phy);
+		dds_set_frequency(DDS_CHAN_TX2_Q_F1, freq, ad9361_phy);
 		console_print("dds_tx2_tone1_freq=%d\n", freq);
 	}
 	else
@@ -849,7 +1038,7 @@ void set_dds_tx2_tone1_freq(double* param, char param_no)	// dds_tx2_tone1_freq=
 *******************************************************************************/
 void get_dds_tx2_tone2_freq(double* param, char param_no)	// dds_tx2_tone2_freq?
 {
-	uint32_t freq = dds_st.cached_freq[DDS_CHAN_TX2_I_F2];
+	uint32_t freq = ad9361_phy->dds_st.cached_freq[DDS_CHAN_TX2_I_F2];
 
 	console_print("dds_tx2_tone2_freq=%d\n", freq);
 }
@@ -863,10 +1052,15 @@ void set_dds_tx2_tone2_freq(double* param, char param_no)	// dds_tx2_tone2_freq=
 {
 	uint32_t freq = (uint32_t)param[0];
 
+	if (ad9361_phy==0) {
+		console_print ("Error: no AD9361 device selected\n");
+		return;
+	}
+
 	if(param_no >= 1)
 	{
-		dds_set_frequency(DDS_CHAN_TX2_I_F2, freq);
-		dds_set_frequency(DDS_CHAN_TX2_Q_F2, freq);
+		dds_set_frequency(DDS_CHAN_TX2_I_F2, freq, ad9361_phy);
+		dds_set_frequency(DDS_CHAN_TX2_Q_F2, freq, ad9361_phy);
 		console_print("dds_tx2_tone2_freq=%d\n", freq);
 	}
 	else
@@ -880,7 +1074,7 @@ void set_dds_tx2_tone2_freq(double* param, char param_no)	// dds_tx2_tone2_freq=
 *******************************************************************************/
 void get_dds_tx2_tone1_phase(double* param, char param_no)	// dds_tx2_tone1_phase?
 {
-	uint32_t phase = dds_st.cached_phase[DDS_CHAN_TX2_I_F1];
+	uint32_t phase = ad9361_phy->dds_st.cached_phase[DDS_CHAN_TX2_I_F1];
 
 	phase /= 1000;
 	console_print("dds_tx2_tone1_phase=%d\n", phase);
@@ -895,13 +1089,18 @@ void set_dds_tx2_tone1_phase(double* param, char param_no)	// dds_tx2_tone1_phas
 {
 	int32_t phase = (uint32_t)param[0];
 
+	if (ad9361_phy==0) {
+		console_print ("Error: no AD9361 device selected\n");
+		return;
+	}
+
 	if(param_no >= 1)
 	{
-		dds_set_phase(DDS_CHAN_TX2_I_F1, (uint32_t)(phase * 1000));
+		dds_set_phase(DDS_CHAN_TX2_I_F1, (uint32_t)(phase * 1000), ad9361_phy);
 		if ((phase - 90) < 0)
 			phase += 360;
-		dds_set_phase(DDS_CHAN_TX2_Q_F1, (uint32_t)((phase - 90) * 1000));
-		phase = dds_st.cached_phase[DDS_CHAN_TX2_I_F1] / 1000;
+		dds_set_phase(DDS_CHAN_TX2_Q_F1, (uint32_t)((phase - 90) * 1000), ad9361_phy);
+		phase = ad9361_phy->dds_st.cached_phase[DDS_CHAN_TX2_I_F1] / 1000;
 		console_print("dds_tx2_tone1_phase=%d\n", phase);
 	}
 	else
@@ -915,7 +1114,7 @@ void set_dds_tx2_tone1_phase(double* param, char param_no)	// dds_tx2_tone1_phas
 *******************************************************************************/
 void get_dds_tx2_tone2_phase(double* param, char param_no)	// dds_tx2_tone2_phase?
 {
-	uint32_t phase = dds_st.cached_phase[DDS_CHAN_TX2_I_F2];
+	uint32_t phase = ad9361_phy->dds_st.cached_phase[DDS_CHAN_TX2_I_F2];
 
 	phase /= 1000;
 	console_print("dds_tx2_f2_phase=%d\n", phase);
@@ -930,13 +1129,18 @@ void set_dds_tx2_tone2_phase(double* param, char param_no)	// dds_tx2_tone2_phas
 {
 	int32_t phase = (uint32_t)param[0];
 
+	if (ad9361_phy==0) {
+		console_print ("Error: no AD9361 device selected\n");
+		return;
+	}
+
 	if(param_no >= 1)
 	{
-		dds_set_phase(DDS_CHAN_TX2_I_F2, (uint32_t)(phase * 1000));
+		dds_set_phase(DDS_CHAN_TX2_I_F2, (uint32_t)(phase * 1000), ad9361_phy);
 		if ((phase - 90) < 0)
 			phase += 360;
-		dds_set_phase(DDS_CHAN_TX2_Q_F2, (uint32_t)((phase - 90) * 1000));
-		phase = dds_st.cached_phase[DDS_CHAN_TX2_I_F2] / 1000;
+		dds_set_phase(DDS_CHAN_TX2_Q_F2, (uint32_t)((phase - 90) * 1000), ad9361_phy);
+		phase = ad9361_phy->dds_st.cached_phase[DDS_CHAN_TX2_I_F2] / 1000;
 		console_print("dds_tx2_tone2_phase=%d\n", phase);
 	}
 	else
@@ -950,7 +1154,7 @@ void set_dds_tx2_tone2_phase(double* param, char param_no)	// dds_tx2_tone2_phas
 *******************************************************************************/
 void get_dds_tx2_tone1_scale(double* param, char param_no)	// dds_tx2_tone1_scale?
 {
-	uint32_t scale = dds_st.cached_scale[DDS_CHAN_TX2_I_F1];
+	uint32_t scale = ad9361_phy->dds_st.cached_scale[DDS_CHAN_TX2_I_F1];
 
 	console_print("dds_tx2_tone1_scale=%d\n", scale);
 }
@@ -964,10 +1168,15 @@ void set_dds_tx2_tone1_scale(double* param, char param_no)	// dds_tx2_tone1_scal
 {
 	uint32_t scale = (uint32_t)param[0];
 
+	if (ad9361_phy==0) {
+		console_print ("Error: no AD9361 device selected\n");
+		return;
+	}
+
 	if(param_no >= 1)
 	{
-		dds_set_scale(DDS_CHAN_TX2_I_F1, scale);
-		dds_set_scale(DDS_CHAN_TX2_Q_F1, scale);
+		dds_set_scale(DDS_CHAN_TX2_I_F1, scale, ad9361_phy);
+		dds_set_scale(DDS_CHAN_TX2_Q_F1, scale, ad9361_phy);
 		console_print("dds_tx2_tone1_scale=%d\n", scale);
 	}
 	else
@@ -981,7 +1190,7 @@ void set_dds_tx2_tone1_scale(double* param, char param_no)	// dds_tx2_tone1_scal
 *******************************************************************************/
 void dds_tx2_tone2_scale(double* param, char param_no)	// dds_tx2_tone2_scale?
 {
-	uint32_t scale = dds_st.cached_scale[DDS_CHAN_TX2_I_F2];
+	uint32_t scale = ad9361_phy->dds_st.cached_scale[DDS_CHAN_TX2_I_F2];
 
 	console_print("dds_tx2_tone2_scale=%d\n", scale);
 }
@@ -995,71 +1204,105 @@ void set_dds_tx2_tone2_scale(double* param, char param_no)	// dds_tx2_tone2_scal
 {
 	uint32_t scale = (uint32_t)param[0];
 
+	if (ad9361_phy==0) {
+		console_print ("Error: no AD9361 device selected\n");
+		return;
+	}
+
 	if(param_no >= 1)
 	{
-		dds_set_scale(DDS_CHAN_TX2_I_F2, scale);
-		dds_set_scale(DDS_CHAN_TX2_Q_F2, scale);
+		dds_set_scale(DDS_CHAN_TX2_I_F2, scale, ad9361_phy);
+		dds_set_scale(DDS_CHAN_TX2_Q_F2, scale, ad9361_phy);
 		console_print("dds_tx2_tone2_scale=%d\n", scale);
 	}
 	else
 		show_invalid_param_message(1);
 }
 
-#endif
 
 
-void get_register(double* param, char param_no){};
-void get_tx_lo_freq(double* param, char param_no){};;
-void set_tx_lo_freq(double* param, char param_no){};
-void get_tx_samp_freq(double* param, char param_no){};
-void set_tx_samp_freq(double* param, char param_no){};
-void get_tx_rf_bandwidth(double* param, char param_no){};
-void set_tx_rf_bandwidth(double* param, char param_no){};
-void get_tx1_attenuation(double* param, char param_no){};
-void set_tx1_attenuation(double* param, char param_no){};
-void get_tx2_attenuation(double* param, char param_no){};
-void set_tx2_attenuation(double* param, char param_no){};
-void get_tx_fir_en(double* param, char param_no){};
-void set_tx_fir_en(double* param, char param_no){};
-void get_rx_lo_freq(double* param, char param_no){};
-void set_rx_lo_freq(double* param, char param_no){};
-void get_rx_samp_freq(double* param, char param_no){};
-void set_rx_samp_freq(double* param, char param_no){};
-void get_rx_rf_bandwidth(double* param, char param_no){};
-void set_rx_rf_bandwidth(double* param, char param_no){};
-void get_rx1_gc_mode(double* param, char param_no){};
-void set_rx1_gc_mode(double* param, char param_no){};
-void get_rx2_gc_mode(double* param, char param_no){};
-void set_rx2_gc_mode(double* param, char param_no){};
-void get_rx1_rf_gain(double* param, char param_no){};
-void set_rx1_rf_gain(double* param, char param_no){};
-void get_rx2_rf_gain(double* param, char param_no){};
-void set_rx2_rf_gain(double* param, char param_no){};
-void get_rx_fir_en(double* param, char param_no){};
-void set_rx_fir_en(double* param, char param_no){};
-void get_dds_tx1_tone1_freq(double* param, char param_no){};
-void set_dds_tx1_tone1_freq(double* param, char param_no){};
-void get_dds_tx1_tone2_freq(double* param, char param_no){};
-void set_dds_tx1_tone2_freq(double* param, char param_no){};
-void get_dds_tx1_tone1_phase(double* param, char param_no){};
-void set_dds_tx1_tone1_phase(double* param, char param_no){};
-void get_dds_tx1_tone2_phase(double* param, char param_no){};
-void set_dds_tx1_tone2_phase(double* param, char param_no){};
-void get_dds_tx1_tone1_scale(double* param, char param_no){};
-void set_dds_tx1_tone1_scale(double* param, char param_no){};
-void get_dds_tx1_tone2_scale(double* param, char param_no){};
-void set_dds_tx1_tone2_scale(double* param, char param_no){};
-void get_dds_tx2_tone1_freq(double* param, char param_no){};
-void set_dds_tx2_tone1_freq(double* param, char param_no){};
-void get_dds_tx2_tone2_freq(double* param, char param_no){};
-void set_dds_tx2_tone2_freq(double* param, char param_no){};
-void get_dds_tx2_tone1_phase(double* param, char param_no){};
-void set_dds_tx2_tone1_phase(double* param, char param_no){};
-void get_dds_tx2_tone2_phase(double* param, char param_no){};
-void set_dds_tx2_tone2_phase(double* param, char param_no){};
-void get_dds_tx2_tone1_scale(double* param, char param_no){};
-void set_dds_tx2_tone1_scale(double* param, char param_no){};
-void dds_tx2_tone2_scale(double* param, char param_no){};
-void set_dds_tx2_tone2_scale(double* param, char param_no){};
+void get_ad_num (double* param, char param_no)
+{
+	if (ad9361_phy  == 0)
+		ad9361_phy = ad9361_phy_0;
+	set_spi_ss(ad9361_phy->pcore_id);
+	console_print ("ad_num=%d\n", ad9361_phy->pcore_id);
+};
+
+void set_ad_num (double* param, char param_no)
+{
+	uint32_t adi_num = (uint32_t)param[0];
+
+	if(param_no >= 1)
+	{
+		switch (adi_num) {
+			case 0:  ad9361_phy = ad9361_phy_0; break;
+			case 1:  ad9361_phy = ad9361_phy_1; break;
+			default: ad9361_phy = ad9361_phy_0; break;
+		}
+		set_spi_ss(ad9361_phy->pcore_id);
+		console_print ("ad_num=%d\n", ad9361_phy->pcore_id);
+	}
+	else
+		show_invalid_param_message(1);
+};
+
+
+
+//void get_register(double* param, char param_no){};
+//void get_tx_lo_freq(double* param, char param_no){};;
+//void set_tx_lo_freq(double* param, char param_no){};
+//void get_tx_samp_freq(double* param, char param_no){};
+//void set_tx_samp_freq(double* param, char param_no){};
+//void get_tx_rf_bandwidth(double* param, char param_no){};
+//void set_tx_rf_bandwidth(double* param, char param_no){};
+//void get_tx1_attenuation(double* param, char param_no){};
+//void set_tx1_attenuation(double* param, char param_no){};
+//void get_tx2_attenuation(double* param, char param_no){};
+//void set_tx2_attenuation(double* param, char param_no){};
+//void get_tx_fir_en(double* param, char param_no){};
+//void set_tx_fir_en(double* param, char param_no){};
+//void get_rx_lo_freq(double* param, char param_no){};
+//void set_rx_lo_freq(double* param, char param_no){};
+//void get_rx_samp_freq(double* param, char param_no){};
+//void set_rx_samp_freq(double* param, char param_no){};
+//void get_rx_rf_bandwidth(double* param, char param_no){};
+//void set_rx_rf_bandwidth(double* param, char param_no){};
+//void get_rx1_gc_mode(double* param, char param_no){};
+//void set_rx1_gc_mode(double* param, char param_no){};
+//void get_rx2_gc_mode(double* param, char param_no){};
+//void set_rx2_gc_mode(double* param, char param_no){};
+//void get_rx1_rf_gain(double* param, char param_no){};
+//void set_rx1_rf_gain(double* param, char param_no){};
+//void get_rx2_rf_gain(double* param, char param_no){};
+//void set_rx2_rf_gain(double* param, char param_no){};
+//void get_rx_fir_en(double* param, char param_no){};
+//void set_rx_fir_en(double* param, char param_no){};
+//void get_dds_tx1_tone1_freq(double* param, char param_no){};
+//void set_dds_tx1_tone1_freq(double* param, char param_no){};
+//void get_dds_tx1_tone2_freq(double* param, char param_no){};
+//void set_dds_tx1_tone2_freq(double* param, char param_no){};
+//void get_dds_tx1_tone1_phase(double* param, char param_no){};
+//void set_dds_tx1_tone1_phase(double* param, char param_no){};
+//void get_dds_tx1_tone2_phase(double* param, char param_no){};
+//void set_dds_tx1_tone2_phase(double* param, char param_no){};
+//void get_dds_tx1_tone1_scale(double* param, char param_no){};
+//void set_dds_tx1_tone1_scale(double* param, char param_no){};
+//void get_dds_tx1_tone2_scale(double* param, char param_no){};
+//void set_dds_tx1_tone2_scale(double* param, char param_no){};
+//void get_dds_tx2_tone1_freq(double* param, char param_no){};
+//void set_dds_tx2_tone1_freq(double* param, char param_no){};
+//void get_dds_tx2_tone2_freq(double* param, char param_no){};
+//void set_dds_tx2_tone2_freq(double* param, char param_no){};
+//void get_dds_tx2_tone1_phase(double* param, char param_no){};
+//void set_dds_tx2_tone1_phase(double* param, char param_no){};
+//void get_dds_tx2_tone2_phase(double* param, char param_no){};
+//void set_dds_tx2_tone2_phase(double* param, char param_no){};
+//void get_dds_tx2_tone1_scale(double* param, char param_no){};
+//void set_dds_tx2_tone1_scale(double* param, char param_no){};
+//void dds_tx2_tone2_scale(double* param, char param_no){};
+//void set_dds_tx2_tone2_scale(double* param, char param_no){};
+//void get_ad_num (double* param, char param_no){};
+//void set_ad_num (double* param, char param_no){};
 
 

@@ -36,14 +36,13 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *******************************************************************************/
-#ifndef __LINUX_H__
-#define __LINUX_H__
+#ifndef COMMON_H_
+#define COMMON_H_
 
 /******************************************************************************/
 /***************************** Include Files **********************************/
 /******************************************************************************/
-#include "stdint.h"
-#include "xil_types.h"
+#include <stdint.h>
 
 /******************************************************************************/
 /********************** Macros and Constants Definitions **********************/
@@ -51,6 +50,7 @@
 #define false	0
 #define true	1
 
+#define EIO			5	/* I/O error */
 #define EAGAIN		11	/* Try again */
 #define ENOMEM		12	/* Out of memory */
 #define EFAULT		14	/* Bad address */
@@ -61,11 +61,13 @@
 /******************************************************************************/
 /*************************** Types Declarations *******************************/
 /******************************************************************************/
+#ifndef WIN32
 typedef uint8_t	bool;
+#endif
 
 struct clk {
-	const char		*name;
-	unsigned long	rate;
+	const char	*name;
+	uint32_t	rate;
 };
 
 struct clk_hw {
@@ -73,16 +75,16 @@ struct clk_hw {
 };
 
 struct clk_init_data {
-		const char				*name;
-		const struct clk_ops	*ops;
-		const char				**parent_names;
-		u8						num_parents;
-		unsigned long			flags;
+	const char				*name;
+	const struct clk_ops	*ops;
+	const char				**parent_names;
+	uint8_t					num_parents;
+	uint32_t				flags;
 };
 
 struct clk_onecell_data {
-		struct clk		**clks;
-		unsigned int	clk_num;
+	struct clk		**clks;
+	uint32_t		clk_num;
 };
 
 #endif

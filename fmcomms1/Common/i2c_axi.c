@@ -49,6 +49,7 @@
 #include "xil_io.h"
 #include "timer.h"
 
+#ifndef XPAR_AXI_IIC_MAIN_BASEADDR
 #ifndef XPAR_AXI_IIC_0_BASEADDR
 	#define XPAR_AXI_IIC_0_BASEADDR 0
 #endif
@@ -57,6 +58,14 @@
     #define AXI_IIC_BASEADDR_1 XPAR_AXI_IIC_1_BASEADDR
 #else
     #define AXI_IIC_BASEADDR_1 XPAR_AXI_IIC_0_BASEADDR
+#endif
+#else
+	#define AXI_IIC_BASEADDR_0 XPAR_AXI_IIC_MAIN_BASEADDR
+	#ifdef XPAR_AXI_IIC_FMC_BASEADDR
+		#define AXI_IIC_BASEADDR_1 XPAR_AXI_IIC_FMC_BASEADDR
+	#else
+		#define AXI_IIC_BASEADDR_1 XPAR_AXI_IIC_MAIN_BASEADDR
+	#endif
 #endif
 
 /*****************************************************************************/
@@ -97,7 +106,11 @@ void delay_us(uint32_t us_count)
 	volatile uint32_t i;
 	for(i = 0; i < us_count*500; i++);
 #else
+#ifdef XPAR_AXI_TIMER_0_BASEADDR
 	TIMER0_WAIT(XPAR_AXI_TIMER_0_BASEADDR, us_count*1000);
+#else
+	TIMER0_WAIT(XPAR_AXI_TIMER_BASEADDR, us_count*1000);
+#endif
 #endif
 }
 /**************************************************************************//**
@@ -157,10 +170,10 @@ uint32_t I2C_Init_axi(uint32_t i2cAddr, uint32_t fmcPort, uint32_t enableCommMux
     //enable the I2C mux
     if(enableCommMux)
     {
-    	if(carrierBoard == 3)
+    	if(carrierBoard == 4)
     		ret = I2C_EnableMux_axi(0x20);
     	else
-    		if(carrierBoard == 4)
+    		if(carrierBoard == 5)
     			ret = I2C_EnableMux_axi(0x40);
 			else
 				ret = I2C_EnableMux_axi(fmcPort == 0 ? (uint8_t)I2C_LPC_AXI :

@@ -42,6 +42,25 @@
 /******************************************************************************/
 #include "ad9361.h"
 #include "ad9361_api.h"
+#include "platform.h"
+#include "util.h"
+
+/******************************************************************************/
+/************************ Constants Definitions *******************************/
+/******************************************************************************/
+static struct axiadc_chip_info axiadc_chip_info_tbl[] =
+{
+	{
+		"AD9361",
+		4,
+		61440000UL,
+	},
+	{
+		"AD9364",
+		2,
+		122880000UL,
+	},
+};
 
 /**
  * Initialize the AD9361 part.
@@ -56,29 +75,48 @@ struct ad9361_rf_phy *ad9361_init (AD9361_InitParam *init_param)
 	int32_t rev = 0;
 	int32_t i   = 0;
 
-	phy = (struct ad9361_rf_phy *)malloc(sizeof(*phy));
+	phy = (struct ad9361_rf_phy *)zmalloc(sizeof(*phy));
 	if (!phy) {
-		return ERR_PTR(-ENOMEM);
+		return (struct ad9361_rf_phy *)ERR_PTR(-ENOMEM);
 	}
 
-	phy->clk_refin = (struct clk *)malloc(sizeof(*phy->clk_refin));
+	phy->spi = (struct spi_device *)zmalloc(sizeof(*phy->spi));
+	if (!phy->spi) {
+		return (struct ad9361_rf_phy *)ERR_PTR(-ENOMEM);
+	}
+
+	phy->clk_refin = (struct clk *)zmalloc(sizeof(*phy->clk_refin));
 	if (!phy->clk_refin) {
-		return ERR_PTR(-ENOMEM);
+		return (struct ad9361_rf_phy *)ERR_PTR(-ENOMEM);
 	}
 
-	phy->pdata = (struct ad9361_phy_platform_data *)malloc(sizeof(*phy->pdata));
+	phy->pdata = (struct ad9361_phy_platform_data *)zmalloc(sizeof(*phy->pdata));
 	if (!phy->pdata) {
-		return ERR_PTR(-ENOMEM);
+		return (struct ad9361_rf_phy *)ERR_PTR(-ENOMEM);
+	}
+
+	phy->adc_conv = (struct axiadc_converter *)zmalloc(sizeof(*phy->adc_conv));
+	if (!phy->adc_conv) {
+		return (struct ad9361_rf_phy *)ERR_PTR(-ENOMEM);
+	}
+
+	phy->adc_state = (struct axiadc_state *)zmalloc(sizeof(*phy->adc_state));
+	if (!phy->adc_state) {
+		return (struct ad9361_rf_phy *)ERR_PTR(-ENOMEM);
 	}
 
 	/* Reference Clock */
 	phy->clk_refin->rate = init_param->reference_clk_rate;
 
 	/* Base Configuration */
-	phy->pdata->fdd = init_param->two_rx_two_tx_mode_enable;
-	phy->pdata->rx2tx2 = init_param->frequency_division_duplex_mode_enable;
+	phy->pdata->fdd = init_param->frequency_division_duplex_mode_enable;
+	phy->pdata->rx2tx2 = init_param->two_rx_two_tx_mode_enable;
 	phy->pdata->tdd_use_dual_synth = init_param->tdd_use_dual_synth_mode_enable;
 	phy->pdata->tdd_skip_vco_cal = init_param->tdd_skip_vco_cal_enable;
+	phy->pdata->rx_fastlock_delay_ns = init_param->rx_fastlock_delay_ns;
+	phy->pdata->tx_fastlock_delay_ns = init_param->tx_fastlock_delay_ns;
+	phy->pdata->trx_fastlock_pinctrl_en[0] = init_param->rx_fastlock_pincontrol_enable;
+	phy->pdata->trx_fastlock_pinctrl_en[1] = init_param->tx_fastlock_pincontrol_enable;
 	phy->pdata->use_ext_rx_lo = init_param->external_rx_lo_enable;
 	phy->pdata->use_ext_tx_lo = init_param->external_tx_lo_enable;
 	phy->pdata->dc_offset_update_events = init_param->dc_offset_tracking_update_event_mask;
@@ -119,11 +157,11 @@ struct ad9361_rf_phy *ad9361_init (AD9361_InitParam *init_param)
 	phy->pdata->use_extclk = init_param->xo_disable_use_ext_refclk_enable;
 	phy->pdata->dcxo_coarse = init_param->dcxo_coarse_and_fine_tune[0];
 	phy->pdata->dcxo_fine = init_param->dcxo_coarse_and_fine_tune[1];
-	phy->pdata->ad9361_clkout_mode = init_param->clk_output_mode_select;
+	phy->pdata->ad9361_clkout_mode = (enum ad9361_clkout)init_param->clk_output_mode_select;
 
 	/* Gain Control */
-	phy->pdata->gain_ctrl.rx1_mode = init_param->gc_rx1_mode;
-	phy->pdata->gain_ctrl.rx2_mode = init_param->gc_rx2_mode;
+	phy->pdata->gain_ctrl.rx1_mode = (enum rf_gain_ctrl_mode)init_param->gc_rx1_mode;
+	phy->pdata->gain_ctrl.rx2_mode = (enum rf_gain_ctrl_mode)init_param->gc_rx2_mode;
 	phy->pdata->gain_ctrl.adc_large_overload_thresh = init_param->gc_adc_large_overload_thresh;
 	phy->pdata->gain_ctrl.adc_ovr_sample_size = init_param->gc_adc_ovr_sample_size;
 	phy->pdata->gain_ctrl.adc_small_overload_thresh = init_param->gc_adc_small_overload_thresh;
@@ -162,19 +200,68 @@ struct ad9361_rf_phy *ad9361_init (AD9361_InitParam *init_param)
 	phy->pdata->gain_ctrl.agc_outer_thresh_high_dec_steps = init_param->agc_outer_thresh_high_dec_steps;
 	phy->pdata->gain_ctrl.agc_outer_thresh_low = init_param->agc_outer_thresh_low;
 	phy->pdata->gain_ctrl.agc_outer_thresh_low_inc_steps = init_param->agc_outer_thresh_low_inc_steps;
-	phy->pdata->gain_ctrl.agc_attack_delay_extra_margin_us = init_param->agc_attack_delay_extra_margin_us;	/* adi,agc-attack-delay-extra-margin-us */
+	phy->pdata->gain_ctrl.agc_attack_delay_extra_margin_us = init_param->agc_attack_delay_extra_margin_us;
 	phy->pdata->gain_ctrl.sync_for_gain_counter_en = init_param->agc_sync_for_gain_counter_enable;
+
+	/* Fast AGC */
+
+	phy->pdata->gain_ctrl.f_agc_dec_pow_measuremnt_duration = init_param->fagc_dec_pow_measuremnt_duration;
+	phy->pdata->gain_ctrl.f_agc_dec_pow_measuremnt_duration = init_param->fagc_state_wait_time_ns;
+		/* Fast AGC - Low Power */
+	phy->pdata->gain_ctrl.f_agc_allow_agc_gain_increase = init_param->fagc_allow_agc_gain_increase;
+	phy->pdata->gain_ctrl.f_agc_lp_thresh_increment_time = init_param->fagc_lp_thresh_increment_time;
+	phy->pdata->gain_ctrl.f_agc_lp_thresh_increment_steps = init_param->fagc_lp_thresh_increment_steps;
+		/* Fast AGC - Lock Level */
+	phy->pdata->gain_ctrl.f_agc_lock_level = init_param->fagc_lock_level;
+	phy->pdata->gain_ctrl.f_agc_lock_level_lmt_gain_increase_en = init_param->fagc_lock_level_lmt_gain_increase_en;
+	phy->pdata->gain_ctrl.f_agc_lock_level_gain_increase_upper_limit = init_param->fagc_lock_level_gain_increase_upper_limit;
+		/* Fast AGC - Peak Detectors and Final Settling */
+	phy->pdata->gain_ctrl.f_agc_lpf_final_settling_steps = init_param->fagc_lpf_final_settling_steps;
+	phy->pdata->gain_ctrl.f_agc_lmt_final_settling_steps = init_param->fagc_lmt_final_settling_steps;
+	phy->pdata->gain_ctrl.f_agc_final_overrange_count = init_param->fagc_final_overrange_count;
+		/* Fast AGC - Final Power Test */
+	phy->pdata->gain_ctrl.f_agc_gain_increase_after_gain_lock_en = init_param->fagc_gain_increase_after_gain_lock_en;
+		/* Fast AGC - Unlocking the Gain */
+	phy->pdata->gain_ctrl.f_agc_gain_index_type_after_exit_rx_mode = (enum f_agc_target_gain_index_type)init_param->fagc_gain_index_type_after_exit_rx_mode;
+	phy->pdata->gain_ctrl.f_agc_use_last_lock_level_for_set_gain_en = init_param->fagc_use_last_lock_level_for_set_gain_en;
+	phy->pdata->gain_ctrl.f_agc_rst_gla_stronger_sig_thresh_exceeded_en = init_param->fagc_rst_gla_stronger_sig_thresh_exceeded_en;
+	phy->pdata->gain_ctrl.f_agc_optimized_gain_offset = init_param->fagc_optimized_gain_offset;
+	phy->pdata->gain_ctrl.f_agc_rst_gla_stronger_sig_thresh_above_ll = init_param->fagc_rst_gla_stronger_sig_thresh_above_ll;
+	phy->pdata->gain_ctrl.f_agc_rst_gla_engergy_lost_sig_thresh_exceeded_en = init_param->fagc_rst_gla_engergy_lost_sig_thresh_exceeded_en;
+	phy->pdata->gain_ctrl.f_agc_rst_gla_engergy_lost_goto_optim_gain_en = init_param->fagc_rst_gla_engergy_lost_goto_optim_gain_en;
+	phy->pdata->gain_ctrl.f_agc_rst_gla_engergy_lost_sig_thresh_below_ll = init_param->fagc_rst_gla_engergy_lost_sig_thresh_below_ll;
+	phy->pdata->gain_ctrl.f_agc_energy_lost_stronger_sig_gain_lock_exit_cnt = init_param->fagc_energy_lost_stronger_sig_gain_lock_exit_cnt;
+	phy->pdata->gain_ctrl.f_agc_rst_gla_large_adc_overload_en = init_param->fagc_rst_gla_large_adc_overload_en;
+	phy->pdata->gain_ctrl.f_agc_rst_gla_large_lmt_overload_en = init_param->fagc_rst_gla_large_lmt_overload_en;
+	phy->pdata->gain_ctrl.f_agc_rst_gla_en_agc_pulled_high_en = init_param->fagc_rst_gla_en_agc_pulled_high_en;
+	phy->pdata->gain_ctrl.f_agc_rst_gla_if_en_agc_pulled_high_mode = (enum f_agc_target_gain_index_type)init_param->fagc_rst_gla_if_en_agc_pulled_high_mode;
+	phy->pdata->gain_ctrl.f_agc_power_measurement_duration_in_state5 = init_param->fagc_power_measurement_duration_in_state5;
 
 	/* RSSI Control */
 	phy->pdata->rssi_ctrl.rssi_delay = init_param->rssi_delay;
 	phy->pdata->rssi_ctrl.rssi_duration = init_param->rssi_duration;
-	phy->pdata->rssi_ctrl.restart_mode = init_param->rssi_restart_mode;
+	phy->pdata->rssi_ctrl.restart_mode = (enum rssi_restart_mode)init_param->rssi_restart_mode;
 	phy->pdata->rssi_ctrl.rssi_unit_is_rx_samples = init_param->rssi_unit_is_rx_samples_enable;
 	phy->pdata->rssi_ctrl.rssi_wait = init_param->rssi_wait;
 
 	/* Aux ADC Control */
 	phy->pdata->auxadc_ctrl.auxadc_decimation = init_param->aux_adc_decimation;
 	phy->pdata->auxadc_ctrl.auxadc_clock_rate = init_param->aux_adc_rate;
+
+	/* AuxDAC Control */
+	phy->pdata->auxdac_ctrl.auxdac_manual_mode_en = init_param->aux_dac_manual_mode_enable;
+	phy->pdata->auxdac_ctrl.dac1_default_value = init_param->aux_dac1_default_value_mV;
+	phy->pdata->auxdac_ctrl.dac1_in_rx_en = init_param->aux_dac1_active_in_rx_enable;
+	phy->pdata->auxdac_ctrl.dac1_in_tx_en = init_param->aux_dac1_active_in_tx_enable;
+	phy->pdata->auxdac_ctrl.dac1_in_alert_en = init_param->aux_dac1_active_in_alert_enable;
+	phy->pdata->auxdac_ctrl.dac1_rx_delay_us = init_param->aux_dac1_rx_delay_us;
+	phy->pdata->auxdac_ctrl.dac1_tx_delay_us = init_param->aux_dac1_tx_delay_us;
+	phy->pdata->auxdac_ctrl.dac2_default_value = init_param->aux_dac2_default_value_mV;
+	phy->pdata->auxdac_ctrl.dac2_in_rx_en = init_param->aux_dac2_active_in_rx_enable;
+	phy->pdata->auxdac_ctrl.dac2_in_tx_en = init_param->aux_dac2_active_in_tx_enable;
+	phy->pdata->auxdac_ctrl.dac2_in_alert_en = init_param->aux_dac2_active_in_alert_enable;
+	phy->pdata->auxdac_ctrl.dac2_rx_delay_us = init_param->aux_dac2_rx_delay_us;
+	phy->pdata->auxdac_ctrl.dac2_tx_delay_us = init_param->aux_dac2_tx_delay_us;
 
 	/* Temperature Sensor Control */
 	phy->pdata->auxadc_ctrl.temp_sensor_decimation = init_param->temp_sense_decimation;
@@ -213,18 +300,39 @@ struct ad9361_rf_phy *ad9361_init (AD9361_InitParam *init_param)
 	phy->pdata->port_ctrl.pp_conf[2] |= (init_param->full_port_enable << 1);
 	phy->pdata->port_ctrl.pp_conf[2] |= (init_param->full_duplex_swap_bits_enable << 0);
 	phy->pdata->port_ctrl.pp_conf[1] |= (init_param->delay_rx_data & 0x3);
-	phy->pdata->port_ctrl.rx_clk_data_delay = (init_param->rx_data_clock_delay & 0xF) << 4;
-	phy->pdata->port_ctrl.rx_clk_data_delay |= (init_param->rx_data_delay & 0xF);
-	phy->pdata->port_ctrl.tx_clk_data_delay = (init_param->tx_fb_clock_delay & 0xF) << 4;
-	phy->pdata->port_ctrl.tx_clk_data_delay |= (init_param->tx_data_delay & 0xF);
+	phy->pdata->port_ctrl.rx_clk_data_delay = DATA_CLK_DELAY(init_param->rx_data_clock_delay);
+	phy->pdata->port_ctrl.rx_clk_data_delay |= RX_DATA_DELAY(init_param->rx_data_delay);
+	phy->pdata->port_ctrl.tx_clk_data_delay = FB_CLK_DELAY(init_param->tx_fb_clock_delay);
+	phy->pdata->port_ctrl.tx_clk_data_delay |= TX_DATA_DELAY(init_param->tx_data_delay);
 	phy->pdata->port_ctrl.lvds_bias_ctrl = (init_param->lvds_bias_mV / 75) & 0x7;
 	phy->pdata->port_ctrl.lvds_bias_ctrl |= (init_param->lvds_rx_onchip_termination_enable << 5);
+	phy->pdata->rx1rx2_phase_inversion_en = init_param->rx1rx2_phase_inversion_en;
+
+	/* Tx Monitor Control */
+	phy->pdata->txmon_ctrl.low_high_gain_threshold_mdB = init_param->low_high_gain_threshold_mdB;
+	phy->pdata->txmon_ctrl.low_gain_dB = init_param->low_gain_dB;
+	phy->pdata->txmon_ctrl.high_gain_dB = init_param->high_gain_dB;
+	phy->pdata->txmon_ctrl.tx_mon_track_en = init_param->tx_mon_track_en;
+	phy->pdata->txmon_ctrl.one_shot_mode_en = init_param->one_shot_mode_en;
+	phy->pdata->txmon_ctrl.tx_mon_delay = init_param->tx_mon_delay;
+	phy->pdata->txmon_ctrl.tx_mon_duration = init_param->tx_mon_duration;
+	phy->pdata->txmon_ctrl.tx1_mon_front_end_gain = init_param->tx1_mon_front_end_gain;
+	phy->pdata->txmon_ctrl.tx2_mon_front_end_gain = init_param->tx2_mon_front_end_gain;
+	phy->pdata->txmon_ctrl.tx1_mon_lo_cm = init_param->tx1_mon_lo_cm;
+	phy->pdata->txmon_ctrl.tx2_mon_lo_cm = init_param->tx2_mon_lo_cm;
 
 	phy->pdata->debug_mode = true;
-	phy->pdata->gpio_resetb = 54 + 46;			// FIXME
+	phy->pdata->gpio_resetb = init_param->gpio_resetb;
+	/* Optional: next three GPIOs are used for MCS synchronization */
+	phy->pdata->gpio_sync = init_param->gpio_sync;
+	phy->pdata->gpio_cal_sw1 = init_param->gpio_cal_sw1;
+	phy->pdata->gpio_cal_sw2 = init_param->gpio_cal_sw2;
+
 	phy->pdata->port_ctrl.digital_io_ctrl = 0;
 	phy->pdata->port_ctrl.lvds_invert[0] = 0xFF;
 	phy->pdata->port_ctrl.lvds_invert[1] = 0x0F;
+
+	phy->adc_conv->chip_info = &axiadc_chip_info_tbl[phy->pdata->rx2tx2 ? ID_AD9361 : ID_AD9364];
 
 	phy->rx_eq_2tx = false;
 
@@ -236,13 +344,20 @@ struct ad9361_rf_phy *ad9361_init (AD9361_InitParam *init_param)
 	phy->bbdc_track_en = true;
 	phy->quad_track_en = true;
 
-	ad9361_reset(phy);
-	ad9361_spi_write(REG_SPI_CONF, SOFT_RESET | _SOFT_RESET);
-	ad9361_spi_write(REG_SPI_CONF, 0x0);
+	phy->bist_loopback_mode = 0;
+	phy->bist_prbs_mode = BIST_DISABLE;
+	phy->bist_tone_mode = BIST_DISABLE;
+	phy->bist_tone_freq_Hz = 0;
+	phy->bist_tone_level_dB = 0;
+	phy->bist_tone_mask = 0;
 
-	ret = ad9361_spi_read(REG_PRODUCT_ID);
+	ad9361_reset(phy);
+	ad9361_spi_write(NULL, REG_SPI_CONF, SOFT_RESET | _SOFT_RESET);
+	ad9361_spi_write(NULL, REG_SPI_CONF, 0x0);
+
+	ret = ad9361_spi_read(NULL, REG_PRODUCT_ID);
 	if ((ret & PRODUCT_ID_MASK) != PRODUCT_ID_9361) {
-		printf("%s : Unsupported PRODUCT_ID 0x%X", __func__, (unsigned int)ret);
+		printf("%s : Unsupported PRODUCT_ID 0x%X", "ad9361_init", (unsigned int)ret);
 		ret = -ENODEV;
 		goto out;
 	}
@@ -251,6 +366,8 @@ struct ad9361_rf_phy *ad9361_init (AD9361_InitParam *init_param)
 	ret = register_clocks(phy);
 	if (ret < 0)
 		goto out;
+
+	axiadc_init(phy);
 
 	ad9361_init_gain_tables(phy);
 
@@ -262,17 +379,20 @@ struct ad9361_rf_phy *ad9361_init (AD9361_InitParam *init_param)
 	if (ret < 0)
 		goto out;
 
-	printf("%s : AD9361 Rev %d successfully initialized\n", __func__, (int)rev);
+	printf("%s : AD9361 Rev %d successfully initialized\n", "ad9361_init", (int)rev);
 
 	return phy;
 
 out:
+	free(phy->spi);
+	free(phy->adc_conv);
+	free(phy->adc_state);
 	free(phy->clk_refin);
 	free(phy->pdata);
 	free(phy);
-	printf("%s : AD9361 initialization error\n", __func__);
+	printf("%s : AD9361 initialization error\n", "ad9361_init");
 
-	return ERR_PTR(ENODEV);
+	return (struct ad9361_rf_phy *)ERR_PTR(ENODEV);
 }
 
 /**
@@ -284,9 +404,12 @@ out:
 int32_t ad9361_set_en_state_machine_mode (struct ad9361_rf_phy *phy,
 										  uint32_t mode)
 {
-	ad9361_ensm_force_state(phy, mode);
+	int32_t ret;
 
-	return 0;
+	ad9361_set_ensm_mode(phy, phy->pdata->fdd, false);
+	ret = ad9361_ensm_set_state(phy, mode, false);
+
+	return ret;
 }
 
 /**
@@ -513,11 +636,60 @@ int32_t ad9361_set_rx_fir_config (struct ad9361_rf_phy *phy,
 {
 	int32_t ret;
 
-	ret = ad9361_load_fir_filter_coef(phy, fir_cfg.rx | FIR_IS_RX,
-			fir_cfg.rx_gain, 64, fir_cfg.rx_coef);
+	ret = ad9361_load_fir_filter_coef(phy, (enum fir_dest)(fir_cfg.rx | FIR_IS_RX),
+			fir_cfg.rx_gain, 128, fir_cfg.rx_coef);
 	phy->rx_fir_dec = fir_cfg.rx_dec;
 
 	return ret;
+}
+
+/**
+ * Get the RX FIR filter configuration.
+ * @param phy The AD9361 current state structure.
+ * @param tx_ch The selected RX channel (1, 2).
+ * @param fir_cfg FIR filter configuration output file.
+ * @return 0 in case of success, negative error code otherwise.
+ */
+int32_t ad9361_get_rx_fir_config(struct ad9361_rf_phy *phy, uint8_t rx_ch, AD9361_RXFIRConfig *fir_cfg)
+{
+	int32_t ret;
+	uint32_t fir_conf;
+	uint8_t index;
+
+	ret = ad9361_spi_read(NULL, REG_RX_FILTER_CONFIG);
+	if(ret < 0)
+		return ret;
+	fir_conf = ret;
+
+	ret = ad9361_spi_read(NULL, REG_RX_FILTER_GAIN);
+	if(ret < 0)
+		return ret;
+	fir_cfg->rx_gain = -6 * (ret & FILTER_GAIN(3)) + 6;
+	fir_cfg->rx = rx_ch;
+
+	fir_conf &= ~FIR_SELECT(3);
+	fir_conf |= FIR_NUM_TAPS(7) | FIR_SELECT(rx_ch) | FIR_START_CLK;
+	ad9361_spi_write(NULL, REG_RX_FILTER_CONFIG, fir_conf);
+
+	for(index = 0; index < 128; index++)
+	{
+		ad9361_spi_write(NULL, REG_RX_FILTER_COEF_ADDR, index);
+		ret = ad9361_spi_read(NULL, REG_RX_FILTER_COEF_READ_DATA_1);
+		if(ret < 0)
+			return ret;
+		fir_cfg->rx_coef[index] = ret;
+		ret = ad9361_spi_read(NULL, REG_RX_FILTER_COEF_READ_DATA_2);
+		if(ret < 0)
+			return ret;
+		fir_cfg->rx_coef[index] |= (ret << 8);
+	}
+
+	fir_conf &= ~FIR_START_CLK;
+	ad9361_spi_write(NULL, REG_RX_FILTER_CONFIG, fir_conf);
+
+	fir_cfg->rx_dec = phy->rx_fir_dec;
+
+	return 0;
 }
 
 /**
@@ -553,6 +725,111 @@ int32_t ad9361_get_rx_fir_en_dis (struct ad9361_rf_phy *phy,
 								  uint8_t *en_dis)
 {
 	*en_dis = !phy->bypass_rx_fir;
+
+	return 0;
+}
+
+/**
+ * Enable/disable the RX RFDC Tracking.
+ * @param phy The AD9361 current state structure.
+ * @param en_dis The option (ENABLE, DISABLE).
+ * @return 0 in case of success, negative error code otherwise.
+ */
+int32_t ad9361_set_rx_rfdc_track_en_dis (struct ad9361_rf_phy *phy,
+										 uint8_t en_dis)
+{
+	int32_t ret = 0;
+
+	if(phy->rfdc_track_en == en_dis)
+		return ret;
+
+	phy->rfdc_track_en = en_dis;
+	ret = ad9361_tracking_control(phy, phy->bbdc_track_en,
+		phy->rfdc_track_en, phy->quad_track_en);
+
+	return ret;
+}
+
+/**
+ * Get the status of the RX RFDC Tracking.
+ * @param phy The AD9361 current state structure.
+ * @param en_dis The enable/disable status buffer.
+ * @return 0 in case of success, negative error code otherwise.
+ */
+int32_t ad9361_get_rx_rfdc_track_en_dis (struct ad9361_rf_phy *phy,
+										 uint8_t *en_dis)
+{
+	*en_dis = phy->rfdc_track_en;
+
+	return 0;
+}
+
+/**
+ * Enable/disable the RX BasebandDC Tracking.
+ * @param phy The AD9361 current state structure.
+ * @param en_dis The option (ENABLE, DISABLE).
+ * @return 0 in case of success, negative error code otherwise.
+ */
+int32_t ad9361_set_rx_bbdc_track_en_dis (struct ad9361_rf_phy *phy,
+										 uint8_t en_dis)
+{
+	int32_t ret = 0;
+
+	if(phy->bbdc_track_en == en_dis)
+		return ret;
+
+	phy->bbdc_track_en = en_dis;
+	ret = ad9361_tracking_control(phy, phy->bbdc_track_en,
+		phy->rfdc_track_en, phy->quad_track_en);
+
+	return ret;
+}
+
+/**
+ * Get the status of the RX BasebandDC Tracking.
+ * @param phy The AD9361 current state structure.
+ * @param en_dis The enable/disable status buffer.
+ * @return 0 in case of success, negative error code otherwise.
+ */
+int32_t ad9361_get_rx_bbdc_track_en_dis (struct ad9361_rf_phy *phy,
+										 uint8_t *en_dis)
+{
+	*en_dis = phy->bbdc_track_en;
+
+	return 0;
+}
+
+/**
+ * Enable/disable the RX Quadrature Tracking.
+ * @param phy The AD9361 current state structure.
+ * @param en_dis The option (ENABLE, DISABLE).
+ * @return 0 in case of success, negative error code otherwise.
+ */
+int32_t ad9361_set_rx_quad_track_en_dis (struct ad9361_rf_phy *phy,
+										 uint8_t en_dis)
+{
+	int32_t ret = 0;
+
+	if(phy->quad_track_en == en_dis)
+		return ret;
+
+	phy->quad_track_en = en_dis;
+	ret = ad9361_tracking_control(phy, phy->bbdc_track_en,
+		phy->rfdc_track_en, phy->quad_track_en);
+
+	return ret;
+}
+
+/**
+ * Get the status of the RX Quadrature Tracking.
+ * @param phy The AD9361 current state structure.
+ * @param en_dis The enable/disable status buffer.
+ * @return 0 in case of success, negative error code otherwise.
+ */
+int32_t ad9361_get_rx_quad_track_en_dis (struct ad9361_rf_phy *phy,
+										 uint8_t *en_dis)
+{
+	*en_dis = phy->quad_track_en;
 
 	return 0;
 }
@@ -713,11 +990,56 @@ int32_t ad9361_set_tx_fir_config (struct ad9361_rf_phy *phy,
 {
 	int32_t ret;
 
-	ret = ad9361_load_fir_filter_coef(phy, fir_cfg.tx,
-			fir_cfg.tx_gain, 64, fir_cfg.tx_coef);
+	ret = ad9361_load_fir_filter_coef(phy, (enum fir_dest)fir_cfg.tx,
+			fir_cfg.tx_gain, 128, fir_cfg.tx_coef);
 	phy->tx_fir_int = fir_cfg.tx_int;
 
 	return ret;
+}
+
+/**
+ * Get the TX FIR filter configuration.
+ * @param phy The AD9361 current state structure.
+ * @param tx_ch The selected TX channel (1, 2).
+ * @param fir_cfg FIR filter configuration output file.
+ * @return 0 in case of success, negative error code otherwise.
+ */
+int32_t ad9361_get_tx_fir_config(struct ad9361_rf_phy *phy, uint8_t tx_ch, AD9361_TXFIRConfig *fir_cfg)
+{
+	int32_t ret;
+	uint32_t fir_conf;
+	uint8_t index;
+
+	ret = ad9361_spi_read(NULL, REG_TX_FILTER_CONF);
+	if(ret < 0)
+		return ret;
+	fir_conf = ret;
+	fir_cfg->tx_gain = -6 * (fir_conf & TX_FIR_GAIN_6DB);
+	fir_cfg->tx = tx_ch;
+
+	fir_conf &= ~FIR_SELECT(3);
+	fir_conf |= FIR_NUM_TAPS(7) | FIR_SELECT(tx_ch) | FIR_START_CLK;
+	ad9361_spi_write(NULL, REG_TX_FILTER_CONF, fir_conf);
+
+	for(index = 0; index < 128; index++)
+	{
+		ad9361_spi_write(NULL, REG_TX_FILTER_COEF_ADDR, index);
+		ret = ad9361_spi_read(NULL, REG_TX_FILTER_COEF_READ_DATA_1);
+		if(ret < 0)
+			return ret;
+		fir_cfg->tx_coef[index] = ret;
+		ret = ad9361_spi_read(NULL, REG_TX_FILTER_COEF_READ_DATA_2);
+		if(ret < 0)
+			return ret;
+		fir_cfg->tx_coef[index] |= (ret << 8);
+	}
+
+	fir_conf &= ~FIR_START_CLK;
+	ad9361_spi_write(NULL, REG_TX_FILTER_CONF, fir_conf);
+
+	fir_cfg->tx_int = phy->tx_fir_int;
+
+	return 0;
 }
 
 /**
@@ -755,4 +1077,41 @@ int32_t ad9361_get_tx_fir_en_dis (struct ad9361_rf_phy *phy,
 	*en_dis = !phy->bypass_tx_fir;
 
 	return 0;
+}
+
+/**
+ * Set the RX and TX path rates.
+ * @param phy The AD9361 state structure.
+ * @param rx_path_clks RX path rates buffer.
+ * @param tx_path_clks TX path rates buffer.
+ * @return 0 in case of success, negative error code otherwise.
+ */
+int32_t ad9361_set_trx_path_clks(struct ad9361_rf_phy *phy,
+	uint32_t *rx_path_clks,
+	uint32_t *tx_path_clks)
+{
+	int32_t ret;
+
+	ret = ad9361_set_trx_clock_chain(phy, rx_path_clks, tx_path_clks);
+	if (ret < 0)
+		return ret;
+
+	ret = ad9361_update_rf_bandwidth(phy, phy->current_rx_bw_Hz,
+					phy->current_tx_bw_Hz);
+
+	return ret;
+}
+
+/**
+ * Get the RX and TX path rates.
+ * @param phy The AD9361 state structure.
+ * @param rx_path_clks RX path rates buffer.
+ * @param tx_path_clks TX path rates buffer.
+ * @return 0 in case of success, negative error code otherwise.
+ */
+int32_t ad9361_get_trx_path_clks(struct ad9361_rf_phy *phy,
+	uint32_t *rx_path_clks,
+	uint32_t *tx_path_clks)
+{
+	return ad9361_get_trx_clock_chain(phy, rx_path_clks, tx_path_clks);
 }

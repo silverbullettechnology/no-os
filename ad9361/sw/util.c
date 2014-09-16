@@ -40,195 +40,17 @@
 /******************************************************************************/
 /***************************** Include Files **********************************/
 /******************************************************************************/
-#include "xspips.h"
-#include "xgpiops.h"
 #include "util.h"
 
 /******************************************************************************/
 /*************************** Macros Definitions *******************************/
 /******************************************************************************/
 #define BITS_PER_LONG		32
-#define BIT_MASK(nr)		(1UL << ((nr) % BITS_PER_LONG))
-#define BIT_WORD(nr)		((nr) / BITS_PER_LONG)
-
-/******************************************************************************/
-/************************ Variables Definitions *******************************/
-/******************************************************************************/
-XSpiPs_Config	*spi_config;
-XSpiPs			spi_instance;
-XGpioPs_Config	*gpio_config;
-XGpioPs			gpio_instance;
-
-/***************************************************************************//**
- * @brief udelay
-*******************************************************************************/
-void udelay(unsigned long usecs)
-{
-	usleep(usecs);
-}
-
-/***************************************************************************//**
- * @brief mdelay
-*******************************************************************************/
-void mdelay(unsigned long msecs)
-{
-	usleep(msecs * 1000);
-}
-
-/***************************************************************************//**
- * @brief spi_init
-*******************************************************************************/
-int32_t spi_init(uint32_t device_id,
-				 uint8_t  clk_pha,
-				 uint8_t  clk_pol)
-{
-	uint32_t base_addr	 = 0;
-	uint32_t control_val = 0;
-	uint8_t  byte		 = 0;
-
-	spi_config = XSpiPs_LookupConfig(device_id);
-	base_addr = spi_config->BaseAddress;
-	XSpiPs_CfgInitialize(&spi_instance, spi_config, base_addr);
-
-	control_val = XSPIPS_CR_SSFORCE_MASK |
-				  XSPIPS_CR_SSCTRL_MASK |
-				  4 << XSPIPS_CR_PRESC_SHIFT |
-				  (clk_pha ? XSPIPS_CR_CPHA_MASK : 0) |
-				  (clk_pol ? XSPIPS_CR_CPOL_MASK : 0) |
-				  XSPIPS_CR_MSTREN_MASK;
-
-	XSpiPs_WriteReg(base_addr, XSPIPS_CR_OFFSET, control_val);
-
-	for(byte = 0; byte < 128; byte++)
-	{
-		XSpiPs_ReadReg(base_addr, XSPIPS_RXD_OFFSET);
-	}
-
-	return SUCCESS;
-}
-
-/***************************************************************************//**
- * @brief spi_read
-*******************************************************************************/
-int32_t spi_read(uint8_t *data,
-				 uint8_t bytes_number)
-{
-	uint32_t base_addr	 = 0;
-	uint32_t control_val = 0;
-	uint32_t status	  	 = 0;
-	uint32_t cnt		 = 0;
-
-	base_addr = spi_config->BaseAddress;
-	control_val = XSpiPs_ReadReg(base_addr, XSPIPS_CR_OFFSET);
-
-	XSpiPs_WriteReg(base_addr, XSPIPS_CR_OFFSET,
-					control_val & ~(1 << XSPIPS_CR_SSCTRL_SHIFT));
-
-	XSpiPs_WriteReg(base_addr, XSPIPS_TXWR_OFFSET, 0x01);
-
-	XSpiPs_WriteReg(base_addr, XSPIPS_SR_OFFSET, XSPIPS_IXR_TXOW_MASK);
-	XSpiPs_WriteReg(base_addr, XSPIPS_IER_OFFSET, XSPIPS_IXR_TXOW_MASK);
-
-	while(cnt < bytes_number)
-	{
-		XSpiPs_WriteReg(base_addr, XSPIPS_TXD_OFFSET, data[cnt]);
-		cnt++;
-	}
-
-	XSpiPs_WriteReg(base_addr, XSPIPS_ER_OFFSET, XSPIPS_ER_ENABLE_MASK);
-
-	do
-	{
-		status = XSpiPs_ReadReg(base_addr, XSPIPS_SR_OFFSET);
-	}
-	while((status & XSPIPS_IXR_TXOW_MASK) == 0x0);
-
-	XSpiPs_WriteReg(base_addr, XSPIPS_SR_OFFSET, XSPIPS_IXR_TXOW_MASK);
-
-	XSpiPs_WriteReg(base_addr, XSPIPS_CR_OFFSET, control_val);
-
-	cnt = 0;
-	while(cnt < bytes_number)
-	{
-		data[cnt] = XSpiPs_ReadReg(base_addr, XSPIPS_RXD_OFFSET);
-		cnt++;
-	}
-
-	XSpiPs_WriteReg(base_addr, XSPIPS_ER_OFFSET, 0x0);
-
-	return SUCCESS;
-}
-
-/***************************************************************************//**
- * @brief spi_write_then_read
-*******************************************************************************/
-int spi_write_then_read(const unsigned char *txbuf, unsigned n_tx,
-						unsigned char *rxbuf, unsigned n_rx)
-{
-	uint8_t buffer[20] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-						  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-						  0x00, 0x00, 0x00, 0x00};
-	uint8_t byte;
-
-	for(byte = 0; byte < n_tx; byte++)
-	{
-		buffer[byte] = (unsigned char)txbuf[byte];
-	}
-	spi_read(buffer, n_tx + n_rx);
-	for(byte = n_tx; byte < n_tx + n_rx; byte++)
-	{
-		rxbuf[byte - n_tx] = buffer[byte];
-	}
-
-	return SUCCESS;
-}
-
-/***************************************************************************//**
- * @brief gpio_init
-*******************************************************************************/
-void gpio_init(uint32_t device_id)
-{
-	gpio_config = XGpioPs_LookupConfig(XPAR_PS7_GPIO_0_DEVICE_ID);
-	XGpioPs_CfgInitialize(&gpio_instance, gpio_config, gpio_config->BaseAddr);
-}
-
-/***************************************************************************//**
- * @brief gpio_direction
-*******************************************************************************/
-void gpio_direction(uint8_t pin, uint8_t direction)
-{
-	XGpioPs_SetDirectionPin(&gpio_instance, pin, direction);
-	XGpioPs_SetOutputEnablePin(&gpio_instance, pin, 1);
-}
-
-/***************************************************************************//**
- * @brief gpio_data
-*******************************************************************************/
-void gpio_data(uint8_t pin, uint8_t data)
-{
-	XGpioPs_WritePin(&gpio_instance, pin, data);
-}
-
-/***************************************************************************//**
- * @brief gpio_is_valid
-*******************************************************************************/
-bool gpio_is_valid(int number)
-{
-	return 1;
-}
-
-/***************************************************************************//**
- * @brief gpio_set_value
-*******************************************************************************/
-void gpio_set_value(unsigned gpio, int value)
-{
-	gpio_data(gpio, value);
-}
 
 /***************************************************************************//**
  * @brief clk_prepare_enable
 *******************************************************************************/
-int clk_prepare_enable(struct clk *clk)
+int32_t clk_prepare_enable(struct clk *clk)
 {
 	return 0;
 }
@@ -236,11 +58,11 @@ int clk_prepare_enable(struct clk *clk)
 /***************************************************************************//**
  * @brief clk_get_rate
 *******************************************************************************/
-unsigned long clk_get_rate(struct ad9361_rf_phy *phy,
-						   struct refclk_scale *clk_priv)
+uint32_t clk_get_rate(struct ad9361_rf_phy *phy,
+					  struct refclk_scale *clk_priv)
 {
-	unsigned long rate;
-	u32 source;
+	uint32_t rate;
+	uint32_t source;
 
 	source = clk_priv->source;
 
@@ -283,13 +105,13 @@ unsigned long clk_get_rate(struct ad9361_rf_phy *phy,
 /***************************************************************************//**
  * @brief clk_set_rate
 *******************************************************************************/
-int clk_set_rate(struct ad9361_rf_phy *phy,
-				 struct refclk_scale *clk_priv,
-				 unsigned long rate)
+int32_t clk_set_rate(struct ad9361_rf_phy *phy,
+					 struct refclk_scale *clk_priv,
+					 uint32_t rate)
 {
-	u32 source;
-	int i;
-	unsigned long round_rate;
+	uint32_t source;
+	int32_t i;
+	uint32_t round_rate;
 
 	source = clk_priv->source;
 	if(phy->clks[source]->rate != rate)
@@ -367,23 +189,23 @@ int clk_set_rate(struct ad9361_rf_phy *phy,
 /***************************************************************************//**
  * @brief int_sqrt
 *******************************************************************************/
-unsigned long int_sqrt(unsigned long x)
+uint32_t int_sqrt(uint32_t x)
 {
-	unsigned long b, m, y = 0;
+	uint32_t b, m, y = 0;
 
 	if (x <= 1)
-			return x;
+		return x;
 
 	m = 1UL << (BITS_PER_LONG - 2);
 	while (m != 0) {
-			b = y + m;
-			y >>= 1;
+		b = y + m;
+		y >>= 1;
 
-			if (x >= b) {
-					x -= b;
-					y += m;
-			}
-			m >>= 2;
+		if (x >= b) {
+			x -= b;
+			y += m;
+		}
+		m >>= 2;
 	}
 
 	return y;
@@ -392,30 +214,90 @@ unsigned long int_sqrt(unsigned long x)
 /***************************************************************************//**
  * @brief ilog2
 *******************************************************************************/
-int ilog2(int x)
+int32_t ilog2(int32_t x)
 {
-	int A = !(!(x >> 16));
-	int count = 0;
-	int x_copy = x;
+	int32_t A = !(!(x >> 16));
+	int32_t count = 0;
+	int32_t x_copy = x;
 
-	count = count + (A<<4);
+	count = count + (A << 4);
 
-	x_copy = (((~A + 1) & (x >> 16)) + (~(~A+1) & x));
+	x_copy = (((~A + 1) & (x >> 16)) + (~(~A + 1) & x));
 
 	A = !(!(x_copy >> 8));
-	count = count + (A<<3);
-	x_copy = (((~A + 1) & (x_copy >> 8)) + (~(~A+1) & x_copy));
+	count = count + (A << 3);
+	x_copy = (((~A + 1) & (x_copy >> 8)) + (~(~A + 1) & x_copy));
 
 	A = !(!(x_copy >> 4));
-	count = count + (A<<2);
-	x_copy = (((~A + 1) & (x_copy >> 4)) + (~(~A+1) & x_copy));
+	count = count + (A << 2);
+	x_copy = (((~A + 1) & (x_copy >> 4)) + (~(~A + 1) & x_copy));
 
 	A = !(!(x_copy >> 2));
-	count = count + (A<<1);
-	x_copy = (((~A + 1) & (x_copy >> 2)) + (~(~A+1) & x_copy));
+	count = count + (A << 1);
+	x_copy = (((~A + 1) & (x_copy >> 2)) + (~(~A + 1) & x_copy));
 
 	A = !(!(x_copy >> 1));
 	count = count + A;
 
 	return count;
+}
+
+/***************************************************************************//**
+ * @brief do_div
+*******************************************************************************/
+uint64_t do_div(uint64_t* n, uint64_t base)
+{
+	uint64_t mod = 0;
+
+	mod = *n % base;
+	*n = *n / base;
+
+	return mod;
+}
+
+/***************************************************************************//**
+ * @brief __ffs
+*******************************************************************************/
+uint32_t __ffs(uint32_t word)
+{
+	int32_t num = 0;
+
+	if ((word & 0xffff) == 0) {
+			num += 16;
+			word >>= 16;
+	}
+	if ((word & 0xff) == 0) {
+			num += 8;
+			word >>= 8;
+	}
+	if ((word & 0xf) == 0) {
+			num += 4;
+			word >>= 4;
+	}
+	if ((word & 0x3) == 0) {
+			num += 2;
+			word >>= 2;
+	}
+	if ((word & 0x1) == 0)
+			num += 1;
+	return num;
+}
+
+/***************************************************************************//**
+ * @brief ERR_PTR
+*******************************************************************************/
+void * ERR_PTR(long error)
+{
+	return (void *) error;
+}
+
+/***************************************************************************//**
+ * @brief zmalloc
+*******************************************************************************/
+void *zmalloc(size_t size)
+{
+	void *ptr = malloc(size);
+	if (ptr)
+		memset(ptr, 0, size);
+	return ptr;
 }

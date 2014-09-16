@@ -94,6 +94,7 @@ typedef enum
 typedef enum
 {
     XILINX_ML605 = 0,
+    XILINX_AC701,
     XILINX_KC705,
     XILINX_VC707,
     XILINX_ZC702,
@@ -394,5 +395,16 @@ XCOMM_DacFifoStatus XCOMM_GetDacFifoStatus(void);
 /*  if error, return -1 */
 int32_t XCOMM_SetDacDataFormat(uint8_t dataFormat);
 
-#endif /* __XCOMM_H__ */
+/** Gets the DAC die temperature code. */
+/*  ** if success, return the die temperature code */
+/*  ** if error, return -1 */
+int32_t XCOMM_GetDacTemperatureCode(void);
 
+/** Gets the DAC die temperature. */
+/*  ** calibTemp: the known temperature in milli degrees Celsius */
+/*  ** calibTempCode: the readback code for the known temperature */
+/*  ** if success, return the die temperature in milli degrees Celsius */
+/*  ** if error, return -1 */
+int32_t XCOMM_GetDacTemperature(int32_t calibTemp, int32_t calibTempCode);
+
+#endif /* __XCOMM_H__ */

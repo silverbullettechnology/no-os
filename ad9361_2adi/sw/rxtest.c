@@ -41,16 +41,16 @@ while(1){
 		Xil_DCacheFlush();
 		//	CheckData();
 
-		ad9361_spi_write(REG_BIST_CONFIG, 0X09);            // 0x09 for PRBS, 0x0B for tone
+		ad9361_spi_write(phy->spi, REG_BIST_CONFIG, 0X09);            // 0x09 for PRBS, 0x0B for tone
 		//	ad9361_spi_write(REG_BIST_CONFIG, 0X0B);
 		//ad9361_spi_write(REG_BIST_CONFIG, 0XFB);
 
 		//ad9361_spi_write(REG_RX_CLOCK_DATA_DELAY, 0X0f);
-		ad9361_spi_write(REG_RX_CLOCK_DATA_DELAY, rx_clk_delay);
+		ad9361_spi_write(phy->spi, REG_RX_CLOCK_DATA_DELAY, rx_clk_delay);
 
 		// If running software on SDRDC cut2 AD2 chip
 		//ad9361_spi_write( REG_LVDS_INVERT_CTRL1, 0X10);
-		xil_printf("%03x RX_CLOCK_DATA_DELAY  : %02x \n\r", REG_RX_CLOCK_DATA_DELAY, ad9361_spi_read (REG_RX_CLOCK_DATA_DELAY));
+		xil_printf("%03x RX_CLOCK_DATA_DELAY  : %02x \n\r", REG_RX_CLOCK_DATA_DELAY, ad9361_spi_read (phy->spi, REG_RX_CLOCK_DATA_DELAY));
 
 		if (adc_capture(WordsToRx, ADC_DDR_BASEADDR, adi_num) == -1) {continue;};
 
@@ -58,29 +58,29 @@ while(1){
 		CheckRxData_PRBS();
 //		ShowRxData();
 
-		main_xadcps();
-		xil_printf ("ADI temperature: Raw: %d Corrected: %d Centigrade \n\r",ad9361_spi_read (REG_TEMPERATURE), ad9361_get_temp(phy));
+//		main_xadcps();
+//		xil_printf ("ADI temperature: Raw: %d Corrected: %d Centigrade \n\r",ad9361_spi_read (phy->spi, REG_TEMPERATURE), ad9361_get_temp(phy));
 
-		xil_printf("%03x RX_CLOCK_DATA_DELAY  : %02x \n\r", REG_RX_CLOCK_DATA_DELAY, ad9361_spi_read (REG_RX_CLOCK_DATA_DELAY));
+		xil_printf("%03x RX_CLOCK_DATA_DELAY  : %02x \n\r", REG_RX_CLOCK_DATA_DELAY, ad9361_spi_read (phy->spi, REG_RX_CLOCK_DATA_DELAY));
 
-		xil_printf("%03x PARALLEL_PORT_CONFIG1: %02x \n\r", REG_PARALLEL_PORT_CONF_1, ad9361_spi_read (REG_PARALLEL_PORT_CONF_1));
-		xil_printf("%03x PARALLEL_PORT_CONFIG2: %02x \n\r", REG_PARALLEL_PORT_CONF_2, ad9361_spi_read (REG_PARALLEL_PORT_CONF_2));
-		xil_printf("%03x PARALLEL_PORT_CONFIG3: %02x \n\r", REG_PARALLEL_PORT_CONF_3, ad9361_spi_read (REG_PARALLEL_PORT_CONF_3));
+		xil_printf("%03x PARALLEL_PORT_CONFIG1: %02x \n\r", REG_PARALLEL_PORT_CONF_1, ad9361_spi_read (phy->spi, REG_PARALLEL_PORT_CONF_1));
+		xil_printf("%03x PARALLEL_PORT_CONFIG2: %02x \n\r", REG_PARALLEL_PORT_CONF_2, ad9361_spi_read (phy->spi, REG_PARALLEL_PORT_CONF_2));
+		xil_printf("%03x PARALLEL_PORT_CONFIG3: %02x \n\r", REG_PARALLEL_PORT_CONF_3, ad9361_spi_read (phy->spi, REG_PARALLEL_PORT_CONF_3));
 
-		xil_printf("%03x ENSM_MODE            : %02x \n\r", REG_ENSM_MODE, ad9361_spi_read (REG_ENSM_MODE));
-		xil_printf("%03x ENSM_CONFIG_1        : %02x \n\r", REG_ENSM_CONFIG_1, ad9361_spi_read (REG_ENSM_CONFIG_1));
-		xil_printf("%03x ENSM_CONFIG_2        : %02x \n\r", REG_ENSM_CONFIG_2, ad9361_spi_read (REG_ENSM_CONFIG_2));
-		xil_printf("%03x CALIBRATION_CONTROL  : %02x \n\r", REG_CALIBRATION_CTRL, ad9361_spi_read (REG_CALIBRATION_CTRL));
-		xil_printf("%03x STATE                : %02x \n\r", REG_STATE, ad9361_spi_read (REG_STATE));
+		xil_printf("%03x ENSM_MODE            : %02x \n\r", REG_ENSM_MODE, ad9361_spi_read (phy->spi, REG_ENSM_MODE));
+		xil_printf("%03x ENSM_CONFIG_1        : %02x \n\r", REG_ENSM_CONFIG_1, ad9361_spi_read (phy->spi, REG_ENSM_CONFIG_1));
+		xil_printf("%03x ENSM_CONFIG_2        : %02x \n\r", REG_ENSM_CONFIG_2, ad9361_spi_read (phy->spi, REG_ENSM_CONFIG_2));
+		xil_printf("%03x CALIBRATION_CONTROL  : %02x \n\r", REG_CALIBRATION_CTRL, ad9361_spi_read (phy->spi, REG_CALIBRATION_CTRL));
+		xil_printf("%03x STATE                : %02x \n\r", REG_STATE, ad9361_spi_read (phy->spi, REG_STATE));
 
-		xil_printf("%03x DIGITAL_IO_CONTROL   : %02x \n\r", REG_DIGITAL_IO_CTRL, ad9361_spi_read (REG_DIGITAL_IO_CTRL));
-		xil_printf("%03x LVDS_BIAS_CONTROL    : %02x \n\r", REG_LVDS_BIAS_CTRL, ad9361_spi_read (REG_LVDS_BIAS_CTRL));
-		xil_printf("%03x LVDS_INVERT_CONTROL_1: %02x \n\r", REG_LVDS_INVERT_CTRL1, ad9361_spi_read (REG_LVDS_INVERT_CTRL1));
-		xil_printf("%03x LVDS_INVERT_CONTROL_2: %02x \n\r", REG_LVDS_INVERT_CTRL2, ad9361_spi_read (REG_LVDS_INVERT_CTRL2));
+		xil_printf("%03x DIGITAL_IO_CONTROL   : %02x \n\r", REG_DIGITAL_IO_CTRL, ad9361_spi_read (phy->spi, REG_DIGITAL_IO_CTRL));
+		xil_printf("%03x LVDS_BIAS_CONTROL    : %02x \n\r", REG_LVDS_BIAS_CTRL, ad9361_spi_read (phy->spi, REG_LVDS_BIAS_CTRL));
+		xil_printf("%03x LVDS_INVERT_CONTROL_1: %02x \n\r", REG_LVDS_INVERT_CTRL1, ad9361_spi_read (phy->spi, REG_LVDS_INVERT_CTRL1));
+		xil_printf("%03x LVDS_INVERT_CONTROL_2: %02x \n\r", REG_LVDS_INVERT_CTRL2, ad9361_spi_read (phy->spi, REG_LVDS_INVERT_CTRL2));
 
-		xil_printf("%03x REG_BIST_CONFIG                   : %02x \n\r", REG_BIST_CONFIG, ad9361_spi_read (REG_BIST_CONFIG));
-		xil_printf("%03x REG_OBSERVE_CONFIG                : %02x \n\r", REG_OBSERVE_CONFIG, ad9361_spi_read (REG_OBSERVE_CONFIG));
-		xil_printf("%03x REG_BIST_AND_DATA_PORT_TEST_CONFIG: %02x \n\r", REG_BIST_AND_DATA_PORT_TEST_CONFIG, ad9361_spi_read (REG_BIST_AND_DATA_PORT_TEST_CONFIG));
+		xil_printf("%03x REG_BIST_CONFIG                   : %02x \n\r", REG_BIST_CONFIG, ad9361_spi_read (phy->spi, REG_BIST_CONFIG));
+		xil_printf("%03x REG_OBSERVE_CONFIG                : %02x \n\r", REG_OBSERVE_CONFIG, ad9361_spi_read (phy->spi, REG_OBSERVE_CONFIG));
+		xil_printf("%03x REG_BIST_AND_DATA_PORT_TEST_CONFIG: %02x \n\r", REG_BIST_AND_DATA_PORT_TEST_CONFIG, ad9361_spi_read (phy->spi, REG_BIST_AND_DATA_PORT_TEST_CONFIG));
 		ad9361_get_rx_sampling_freq (phy, &rx_data_clk);
 		xil_printf("DATA CLK RATE: %d \n\r", rx_data_clk);
 	}
@@ -115,16 +115,19 @@ void txrxtest_main(struct ad9361_rf_phy *phy)
 		Xil_DCacheFlush();
 		//	CheckData();
 
-		ad9361_spi_write(REG_BIST_CONFIG, 0X00);  // 0x09 for PRBS, 0x0B for tone, 0x00 no bist
+		ad9361_spi_write(phy->spi, REG_BIST_CONFIG, 0X00);  // 0x09 for PRBS, 0x0B for tone, 0x00 no bist
 		//ad9361_spi_write(REG_TX_CLOCK_DATA_DELAY, tx_clk_delay);
 
-		ad9361_spi_write(REG_OBSERVE_CONFIG, 0x01);  // 0x01 enable loopback of tx to rx
+		ad9361_spi_write(phy->spi, REG_OBSERVE_CONFIG, 0x01);  // 0x01 enable loopback of tx to rx
 
 		// If running software on SDRDC cut2 AD2 chip
 		//ad9361_spi_write( REG_LVDS_INVERT_CTRL1, 0X10);
 
 		//while(1)
-		dac_init(DATA_SEL_DMA, phy);
+		dac_init(phy, DATA_SEL_DMA);
+
+		sleep(1);
+
 		//dac_init(DATA_SEL_DDS);
 		adc_capture(WordsToRx*4, ADC_DDR_BASEADDR, adi_num);
 
@@ -138,43 +141,43 @@ void txrxtest_main(struct ad9361_rf_phy *phy)
 
 //		xil_printf("************ TXRXTEST DONE *********************\n\r");
 		//ShowRxData();
-		errors = CheckRxData_DMA(0);
+		errors = CheckRxData_DMA(1);
 
-		xil_printf ("Byte ERROR: %d / %d  \n\r", errors, WordsToRx );
+		xil_printf ("Byte ERROR: %d / %d  \n\r", errors, WordsToRx/4 );
 
-		main_xadcps();
-		xil_printf ("ADI temperature: Raw: %d Corrected: %d Centigrade \n\r",ad9361_spi_read (REG_TEMPERATURE), ad9361_get_temp(phy));
+//		main_xadcps();
+//		xil_printf ("ADI temperature: Raw: %d Corrected: %d Centigrade \n\r",ad9361_spi_read (phy->spi, REG_TEMPERATURE), ad9361_get_temp(phy));
 		xil_printf (" \n\r" );
 
-		xil_printf("%03x REG_TEMP_OFFSET           : %02x \n\r", REG_TEMP_OFFSET, ad9361_spi_read (REG_TEMP_OFFSET));
-		xil_printf("%03x REG_START_TEMP_READING    : %02x \n\r", REG_START_TEMP_READING, ad9361_spi_read (REG_START_TEMP_READING));
-		xil_printf("%03x REG_TEMP_SENSE2           : %02x \n\r", REG_TEMP_SENSE2, ad9361_spi_read (REG_TEMP_SENSE2));
-		xil_printf("%03x REG_TEMPERATURE           : %02x \n\r", REG_TEMPERATURE, ad9361_spi_read (REG_TEMPERATURE));
-		xil_printf("%03x REG_TEMP_SENSOR_CONFIG    : %02x \n\r", REG_TEMP_SENSOR_CONFIG, ad9361_spi_read (REG_TEMP_SENSOR_CONFIG));
-		xil_printf("%03x REG_AUXADC_CONFIG         : %02x \n\r", REG_AUXADC_CONFIG, ad9361_spi_read (REG_AUXADC_CONFIG));
+		xil_printf("%03x REG_TEMP_OFFSET           : %02x \n\r", REG_TEMP_OFFSET, ad9361_spi_read (phy->spi, REG_TEMP_OFFSET));
+		xil_printf("%03x REG_START_TEMP_READING    : %02x \n\r", REG_START_TEMP_READING, ad9361_spi_read (phy->spi, REG_START_TEMP_READING));
+		xil_printf("%03x REG_TEMP_SENSE2           : %02x \n\r", REG_TEMP_SENSE2, ad9361_spi_read (phy->spi, REG_TEMP_SENSE2));
+		xil_printf("%03x REG_TEMPERATURE           : %02x \n\r", REG_TEMPERATURE, ad9361_spi_read (phy->spi, REG_TEMPERATURE));
+		xil_printf("%03x REG_TEMP_SENSOR_CONFIG    : %02x \n\r", REG_TEMP_SENSOR_CONFIG, ad9361_spi_read (phy->spi, REG_TEMP_SENSOR_CONFIG));
+		xil_printf("%03x REG_AUXADC_CONFIG         : %02x \n\r", REG_AUXADC_CONFIG, ad9361_spi_read (phy->spi, REG_AUXADC_CONFIG));
 		xil_printf ("\n\r");
 
-		xil_printf("%03x TX_CLOCK_DATA_DELAY  : %02x \n\r", REG_TX_CLOCK_DATA_DELAY, ad9361_spi_read (REG_TX_CLOCK_DATA_DELAY));
-		xil_printf("%03x RX_CLOCK_DATA_DELAY  : %02x \n\r", REG_RX_CLOCK_DATA_DELAY, ad9361_spi_read (REG_RX_CLOCK_DATA_DELAY));
+		xil_printf("%03x TX_CLOCK_DATA_DELAY  : %02x \n\r", REG_TX_CLOCK_DATA_DELAY, ad9361_spi_read (phy->spi, REG_TX_CLOCK_DATA_DELAY));
+		xil_printf("%03x RX_CLOCK_DATA_DELAY  : %02x \n\r", REG_RX_CLOCK_DATA_DELAY, ad9361_spi_read (phy->spi, REG_RX_CLOCK_DATA_DELAY));
 
-		xil_printf("%03x PARALLEL_PORT_CONFIG1: %02x \n\r", REG_PARALLEL_PORT_CONF_1, ad9361_spi_read (REG_PARALLEL_PORT_CONF_1));
-		xil_printf("%03x PARALLEL_PORT_CONFIG2: %02x \n\r", REG_PARALLEL_PORT_CONF_2, ad9361_spi_read (REG_PARALLEL_PORT_CONF_2));
-		xil_printf("%03x PARALLEL_PORT_CONFIG3: %02x \n\r", REG_PARALLEL_PORT_CONF_3, ad9361_spi_read (REG_PARALLEL_PORT_CONF_3));
+		xil_printf("%03x PARALLEL_PORT_CONFIG1: %02x \n\r", REG_PARALLEL_PORT_CONF_1, ad9361_spi_read (phy->spi, REG_PARALLEL_PORT_CONF_1));
+		xil_printf("%03x PARALLEL_PORT_CONFIG2: %02x \n\r", REG_PARALLEL_PORT_CONF_2, ad9361_spi_read (phy->spi, REG_PARALLEL_PORT_CONF_2));
+		xil_printf("%03x PARALLEL_PORT_CONFIG3: %02x \n\r", REG_PARALLEL_PORT_CONF_3, ad9361_spi_read (phy->spi, REG_PARALLEL_PORT_CONF_3));
 
-		xil_printf("%03x ENSM_MODE            : %02x \n\r", REG_ENSM_MODE, ad9361_spi_read (REG_ENSM_MODE));
-		xil_printf("%03x ENSM_CONFIG_1        : %02x \n\r", REG_ENSM_CONFIG_1, ad9361_spi_read (REG_ENSM_CONFIG_1));
-		xil_printf("%03x ENSM_CONFIG_2        : %02x \n\r", REG_ENSM_CONFIG_2, ad9361_spi_read (REG_ENSM_CONFIG_2));
-		xil_printf("%03x CALIBRATION_CONTROL  : %02x \n\r", REG_CALIBRATION_CTRL, ad9361_spi_read (REG_CALIBRATION_CTRL));
-		xil_printf("%03x STATE                : %02x \n\r", REG_STATE, ad9361_spi_read (REG_STATE));
+		xil_printf("%03x ENSM_MODE            : %02x \n\r", REG_ENSM_MODE, ad9361_spi_read (phy->spi, REG_ENSM_MODE));
+		xil_printf("%03x ENSM_CONFIG_1        : %02x \n\r", REG_ENSM_CONFIG_1, ad9361_spi_read (phy->spi, REG_ENSM_CONFIG_1));
+		xil_printf("%03x ENSM_CONFIG_2        : %02x \n\r", REG_ENSM_CONFIG_2, ad9361_spi_read (phy->spi, REG_ENSM_CONFIG_2));
+		xil_printf("%03x CALIBRATION_CONTROL  : %02x \n\r", REG_CALIBRATION_CTRL, ad9361_spi_read (phy->spi, REG_CALIBRATION_CTRL));
+		xil_printf("%03x STATE                : %02x \n\r", REG_STATE, ad9361_spi_read (phy->spi, REG_STATE));
 
-		xil_printf("%03x DIGITAL_IO_CONTROL   : %02x \n\r", REG_DIGITAL_IO_CTRL, ad9361_spi_read (REG_DIGITAL_IO_CTRL));
-		xil_printf("%03x LVDS_BIAS_CONTROL    : %02x \n\r", REG_LVDS_BIAS_CTRL, ad9361_spi_read (REG_LVDS_BIAS_CTRL));
-		xil_printf("%03x LVDS_INVERT_CONTROL_1: %02x \n\r", REG_LVDS_INVERT_CTRL1, ad9361_spi_read (REG_LVDS_INVERT_CTRL1));
-		xil_printf("%03x LVDS_INVERT_CONTROL_2: %02x \n\r", REG_LVDS_INVERT_CTRL2, ad9361_spi_read (REG_LVDS_INVERT_CTRL2));
+		xil_printf("%03x DIGITAL_IO_CONTROL   : %02x \n\r", REG_DIGITAL_IO_CTRL, ad9361_spi_read (phy->spi, REG_DIGITAL_IO_CTRL));
+		xil_printf("%03x LVDS_BIAS_CONTROL    : %02x \n\r", REG_LVDS_BIAS_CTRL, ad9361_spi_read (phy->spi, REG_LVDS_BIAS_CTRL));
+		xil_printf("%03x LVDS_INVERT_CONTROL_1: %02x \n\r", REG_LVDS_INVERT_CTRL1, ad9361_spi_read (phy->spi, REG_LVDS_INVERT_CTRL1));
+		xil_printf("%03x LVDS_INVERT_CONTROL_2: %02x \n\r", REG_LVDS_INVERT_CTRL2, ad9361_spi_read (phy->spi, REG_LVDS_INVERT_CTRL2));
 
-		xil_printf("%03x REG_BIST_CONFIG                   : %02x \n\r", REG_BIST_CONFIG, ad9361_spi_read (REG_BIST_CONFIG));
-		xil_printf("%03x REG_OBSERVE_CONFIG                : %02x \n\r", REG_OBSERVE_CONFIG, ad9361_spi_read (REG_OBSERVE_CONFIG));
-		xil_printf("%03x REG_BIST_AND_DATA_PORT_TEST_CONFIG: %02x \n\r", REG_BIST_AND_DATA_PORT_TEST_CONFIG, ad9361_spi_read (REG_BIST_AND_DATA_PORT_TEST_CONFIG));
+		xil_printf("%03x REG_BIST_CONFIG                   : %02x \n\r", REG_BIST_CONFIG, ad9361_spi_read (phy->spi, REG_BIST_CONFIG));
+		xil_printf("%03x REG_OBSERVE_CONFIG                : %02x \n\r", REG_OBSERVE_CONFIG, ad9361_spi_read (phy->spi, REG_OBSERVE_CONFIG));
+		xil_printf("%03x REG_BIST_AND_DATA_PORT_TEST_CONFIG: %02x \n\r", REG_BIST_AND_DATA_PORT_TEST_CONFIG, ad9361_spi_read (phy->spi, REG_BIST_AND_DATA_PORT_TEST_CONFIG));
 
 		ad9361_get_rx_sampling_freq (phy, &rx_data_clk);
 		xil_printf("RX DATA CLK RATE: %d \n\r", rx_data_clk);
@@ -229,11 +232,11 @@ int CheckRxData_PRBS(void)
 
 //	print("* print DDR rx buffer");
 	for(Index = 0; Index < BYTES_TO_RX; Index++) {
-	  if (Index%8==0)
-	  {
+//	  if (Index%8==0)
+//	  {
 //  	    xil_printf("\r\nValue[%4d]: %02x ", Index, (unsigned int)RxPacket[Index]);
-  	    ilsb = RxPacket[Index];
-	  }
+//  	    ilsb = RxPacket[Index];
+//	  }
 //	  else
 //	  	xil_printf("%02x ",  (unsigned int)RxPacket[Index]);
 
@@ -334,10 +337,12 @@ int CheckRxData_DMA(int p)
     int index_start;
     int error = 0;
 
-	int BYTES_TO_RX = WordsToRx;// 0x400;//0x4000;//16384;
+    int offset = 16;   // comparision offset to ignore first few bytes of receive packet
 
-	rx_temp1 = Xil_In32(ADC_DDR_BASEADDR);
-	rx_temp2 = Xil_In32(ADC_DDR_BASEADDR + 4);
+	int BYTES_TO_RX = 0x400; //WordsToRx;// 0x400;//0x4000;//16384;
+
+	rx_temp1 = Xil_In32(ADC_DDR_BASEADDR + offset);
+	rx_temp2 = Xil_In32(ADC_DDR_BASEADDR + 4 + offset);
 
 	// find
 	index_start = -1;
@@ -352,14 +357,14 @@ int CheckRxData_DMA(int p)
 
     if (index_start == -1) {
     	xil_printf("* ");
-//    	xil_printf("Error: No match");
-//    	for(Index = 0; Index < 254; Index = Index+4) {
-//    		tx_temp1 = Xil_In32(DAC_DDR_BASEADDR + Index);
-//    		tx_temp2 = Xil_In32(DAC_DDR_BASEADDR + Index + 4);
-//    		tx_temp1 = rshift_tx( tx_temp1);
-//    		tx_temp2 = rshift_tx( tx_temp2);
-//      	    xil_printf("\r\nValue[%4d]: %08x . %08x . %08x", Index, rx_temp1, tx_temp1);
-//    	}
+ //   	xil_printf("Error: No match");
+    	for(Index = 0; Index < 254; Index = Index+4) {
+    		tx_temp1 = Xil_In32(DAC_DDR_BASEADDR + Index);
+    		tx_temp2 = Xil_In32(DAC_DDR_BASEADDR + Index + 4);
+    		tx_temp1 = rshift_tx( tx_temp1);
+    		tx_temp2 = rshift_tx( tx_temp2);
+//      	    xil_printf("\r\nValue[%4d]: %08x . %08x ", Index, rx_temp1, tx_temp1);
+    	}
     	return (-1);
     }
 	if (p) xil_printf("\r\nIndex: %d \n", index_start);
@@ -367,19 +372,19 @@ int CheckRxData_DMA(int p)
 
 	for (Index =0; Index < BYTES_TO_RX; Index = Index+4) {
 		rx_temp = Xil_In32(ADC_DDR_BASEADDR + Index);
-		tx_temp = Xil_In32(DAC_DDR_BASEADDR + (index_start + Index) % 256);
+		tx_temp = Xil_In32(DAC_DDR_BASEADDR + (index_start + Index - offset) % 256);
 		tx_temp = rshift_tx( tx_temp);
   	    if (p) xil_printf("\r\nValue[%4d]: %08x . %08x", Index, rx_temp, tx_temp);
 
 		if (rx_temp != tx_temp){
-//	  	    if (p) xil_printf("\r\nValue[%4d]: %08x . %08x", Index, rx_temp, tx_temp);
+	  	    if (p) xil_printf("\r\nValue[%4d]: %08x . %08x", Index, rx_temp, tx_temp);
 			if (p) xil_printf("*");
 			error = error + 1;
 		}
 	}
 
-//	xil_printf("\r\n ");
-//	xil_printf("ERRORS: %d / %d\r\n ", error, BYTES_TO_RX);
+	xil_printf("\r\n ");
+	xil_printf("ERRORS: %d / %d\r\n ", error, BYTES_TO_RX/4);
 
 	if (error != 0)
 		return error;
@@ -404,7 +409,7 @@ int get_eye_rx(struct ad9361_rf_phy *phy, u8 *delay_vec)
 
 	adi_num = phy->pcore_id;
 
-	ad9361_spi_write(REG_BIST_CONFIG, 0X09);            // 0x09 for PRBS, 0x0B for tone
+	ad9361_spi_write(phy->spi, REG_BIST_CONFIG, 0X09);            // 0x09 for PRBS, 0x0B for tone
 
 //	ad9361_get_rx_sampling_freq (phy, &rx_data_clk);
 //	xil_printf("DATA CLK RATE: %d \n\r", rx_data_clk);
@@ -416,7 +421,7 @@ int get_eye_rx(struct ad9361_rf_phy *phy, u8 *delay_vec)
 
 	for (rx_clk_delay = 0x00; rx_clk_delay < 0x10; rx_clk_delay = rx_clk_delay + 1)
 	{
-		ad9361_spi_write(REG_RX_CLOCK_DATA_DELAY, rx_clk_delay);
+		ad9361_spi_write(phy->spi, REG_RX_CLOCK_DATA_DELAY, rx_clk_delay);
 
 		if (adc_capture(WordsToRx, ADC_DDR_BASEADDR, adi_num) == -1)
 		{
@@ -472,7 +477,7 @@ void set_eye_rx(struct ad9361_rf_phy *phy, u8 *delay_vec)
 
 	sel_delay = (min_delay + max_delay) / 2;
 	xil_printf ("Select Delay:  %02x \n\r", sel_delay);
-	ad9361_spi_write(REG_RX_CLOCK_DATA_DELAY, sel_delay);
+	ad9361_spi_write(phy->spi, REG_RX_CLOCK_DATA_DELAY, sel_delay);
 }
 
 
@@ -483,6 +488,10 @@ int get_eye_tx(struct ad9361_rf_phy *phy, u8 *delay_vec)
 	u8 			adi_num;
 	int 		eye_found = 0;
 
+	char		received_cmd[30] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+									0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+									0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+
 	tx_clk_delay = 0x20;
 	adi_num = phy->pcore_id;
 
@@ -492,8 +501,8 @@ int get_eye_tx(struct ad9361_rf_phy *phy, u8 *delay_vec)
 //	main_xadcps();
 //	xil_printf ("ADI temperature: Raw: %d Corrected: %d Centigrade \n\r",ad9361_spi_read (REG_TEMPERATURE), ad9361_get_temp(phy));
 
-	ad9361_spi_write(REG_BIST_CONFIG, 0X00);  // 0x09 for PRBS, 0x0B for tone, 0x00 no bist
-	ad9361_spi_write(REG_OBSERVE_CONFIG, 0x01);  // 0x01 enable loopback of tx to rx
+	ad9361_spi_write(phy->spi, REG_BIST_CONFIG, 0X00);  // 0x09 for PRBS, 0x0B for tone, 0x00 no bist
+	ad9361_spi_write(phy->spi, REG_OBSERVE_CONFIG, 0x01);  // 0x01 enable loopback of tx to rx
 
 	xil_printf ("Valid delays: ");
 
@@ -502,17 +511,30 @@ int get_eye_tx(struct ad9361_rf_phy *phy, u8 *delay_vec)
 		memset((void *)ADC_DDR_BASEADDR, 0xff, WordsToRx*2);
 		Xil_DCacheFlush();
 
-		ad9361_spi_write(REG_TX_CLOCK_DATA_DELAY, tx_clk_delay<<4);
 
-		dac_init(DATA_SEL_DMA, phy);
+		ad9361_spi_write(phy->spi, REG_TX_CLOCK_DATA_DELAY, tx_clk_delay<<4);
 
-		if (adc_capture(WordsToRx, ADC_DDR_BASEADDR, adi_num) == -1)
+		dac_init(phy, DATA_SEL_DMA);
+
+//ShowTxData();
+//xil_printf ("TX DELAY %02x \n\r", tx_clk_delay);
+sleep(1);  // wait for tx data to reach rx side
+//continue;
+//while(1){
+//adc_capture(WordsToRx*4, ADC_DDR_BASEADDR, adi_num);
+//}
+
+		if (adc_capture(WordsToRx*4, ADC_DDR_BASEADDR, adi_num) == -1)
 		{
 			delay_vec[tx_clk_delay] = 1;
 			continue;
 		};
 
-		if (CheckRxData_DMA(0) != 0)
+//xil_printf ("TX DELAY %02x \n\r", tx_clk_delay);
+//ShowRxData();
+//continue;
+
+		if (CheckRxData_DMA(1) != 0)
 		{
 			delay_vec[tx_clk_delay] = 1;
 		}
@@ -565,5 +587,5 @@ void set_eye_tx(struct ad9361_rf_phy *phy, u8 *delay_vec)
 
 	sel_delay = (min_delay + max_delay) / 2;
 	xil_printf ("Select Delay:  %02x \n\r", sel_delay<<4);
-	ad9361_spi_write(REG_TX_CLOCK_DATA_DELAY, sel_delay<<4);
+	ad9361_spi_write(phy->spi, REG_TX_CLOCK_DATA_DELAY, sel_delay<<4);
 }

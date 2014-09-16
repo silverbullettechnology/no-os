@@ -1,9 +1,9 @@
 /***************************************************************************//**
- *   @file   adc_core.h
- *   @brief  Header file of ADC Core Driver.
+ *   @file   platform.h
+ *   @brief  Header file of Platform driver.
  *   @author DBogdan (dragos.bogdan@analog.com)
 ********************************************************************************
- * Copyright 2013(c) Analog Devices, Inc.
+ * Copyright 2014(c) Analog Devices, Inc.
  *
  * All rights reserved.
  *
@@ -36,20 +36,18 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *******************************************************************************/
-#ifndef ADC_CORE_API_H_
-#define ADC_CORE_API_H_
+#ifndef PLATFORM_H_
+#define PLATFORM_H_
+
+/******************************************************************************/
+/***************************** Include Files **********************************/
+/******************************************************************************/
+#include <stdint.h>
+#include "util.h"
 
 /******************************************************************************/
 /********************** Macros and Constants Definitions **********************/
 /******************************************************************************/
-/* ADC COMMON */
-#define ADI_REG_PCORE_VER		0x0000
-#define ADI_REG_PCORE_ID		0x0004
-
-#define ADI_REG_RSTN			0x0040
-#define ADI_RSTN				(1 << 0)
-#define ADI_MMCM_RSTN 			(1 << 1)
-
 #define ADI_REG_CNTRL			0x0044
 #define ADI_R1_MODE				(1 << 2)
 #define ADI_DDR_EDGESEL			(1 << 1)
@@ -61,45 +59,14 @@
 #define ADI_MUX_OVER_RANGE		(1 << 1)
 #define ADI_STATUS				(1 << 0)
 
-#define ADI_REG_DELAY_CNTRL		0x0060
-#define ADI_DELAY_SEL			(1 << 17)
-#define ADI_DELAY_RWN			(1 << 16)
-#define ADI_DELAY_ADDR(x)		(((x) & 0x000000FF) << 8)
-#define ADI_TO_DELAY_ADDR(x)	(((x) >> 8) & 0x000000FF)
-#define ADI_DELAY_WDATA(x)		(((x) & 0x0000001F) << 0)
-#define ADI_TO_DELAY_WDATA(x)	(((x) >> 0) & 0x0000001F)
-
-#define ADI_REG_DELAY_STATUS	0x0064
-#define ADI_DELAY_LOCKED		(1 << 9)
-#define ADI_DELAY_STATUS		(1 << 8)
-#define ADI_TO_DELAY_RDATA(x)	(((x) >> 0) & 0x0000001F)
-
-#define ADI_REG_DMA_CNTRL		0x0080
-#define ADI_DMA_STREAM			(1 << 1)
-#define ADI_DMA_START			(1 << 0)
-
-#define ADI_REG_DMA_COUNT		0x0084
-#define ADI_DMA_COUNT(x)		(((x) & 0xFFFFFFFF) << 0)
-#define ADI_TO_DMA_COUNT(x)		(((x) >> 0) & 0xFFFFFFFF)
-
-#define ADI_REG_DMA_STATUS		0x0088
-#define ADI_DMA_OVF				(1 << 2)
-#define ADI_DMA_UNF				(1 << 1)
-#define ADI_DMA_STATUS			(1 << 0)
-
-#define ADI_REG_DMA_BUSWIDTH	0x008C
-#define ADI_DMA_BUSWIDTH(x)		(((x) & 0xFFFFFFFF) << 0)
-#define ADI_TO_DMA_BUSWIDTH(x)	(((x) >> 0) & 0xFFFFFFFF)
-
-/* ADC CHANNEL */
 #define ADI_REG_CHAN_CNTRL(c)	(0x0400 + (c) * 0x40)
-#define ADI_PN_SEL				(1 << 10)
+#define ADI_PN_SEL				(1 << 10) /* !v8.0 */
 #define ADI_IQCOR_ENB			(1 << 9)
 #define ADI_DCFILT_ENB			(1 << 8)
 #define ADI_FORMAT_SIGNEXT		(1 << 6)
 #define ADI_FORMAT_TYPE			(1 << 5)
 #define ADI_FORMAT_ENABLE		(1 << 4)
-#define ADI_PN23_TYPE			(1 << 1)
+#define ADI_PN23_TYPE			(1 << 1) /* !v8.0 */
 #define ADI_ENABLE				(1 << 0)
 
 #define ADI_REG_CHAN_STATUS(c)	(0x0404 + (c) * 0x40)
@@ -119,44 +86,60 @@
 #define ADI_IQCOR_COEFF_2(x)		(((x) & 0xFFFF) << 0)
 #define ADI_TO_IQCOR_COEFF_2(x)		(((x) >> 0) & 0xFFFF)
 
-#define AXI_DMAC_REG_IRQ_MASK			0x80
-#define AXI_DMAC_REG_IRQ_PENDING		0x84
-#define AXI_DMAC_REG_IRQ_SOURCE			0x88
+#define PCORE_VERSION(major, minor, letter) ((major << 16) | (minor << 8) | letter)
+#define PCORE_VERSION_MAJOR(version) (version >> 16)
+#define PCORE_VERSION_MINOR(version) ((version >> 8) & 0xff)
+#define PCORE_VERSION_LETTER(version) (version & 0xff)
 
-#define AXI_DMAC_REG_CTRL				0x400
-#define AXI_DMAC_REG_TRANSFER_ID		0x404
-#define AXI_DMAC_REG_START_TRANSFER		0x408
-#define AXI_DMAC_REG_FLAGS				0x40c
-#define AXI_DMAC_REG_DEST_ADDRESS		0x410
-#define AXI_DMAC_REG_SRC_ADDRESS		0x414
-#define AXI_DMAC_REG_X_LENGTH			0x418
-#define AXI_DMAC_REG_Y_LENGTH			0x41c
-#define AXI_DMAC_REG_DEST_STRIDE		0x420
-#define AXI_DMAC_REG_SRC_STRIDE			0x424
-#define AXI_DMAC_REG_TRANSFER_DONE		0x428
-#define AXI_DMAC_REG_ACTIVE_TRANSFER_ID 0x42c
-#define AXI_DMAC_REG_STATUS				0x430
-#define AXI_DMAC_REG_CURRENT_DEST_ADDR	0x434
-#define AXI_DMAC_REG_CURRENT_SRC_ADDR	0x438
-#define AXI_DMAC_REG_DBG0				0x43c
-#define AXI_DMAC_REG_DBG1				0x440
+#define ADI_REG_CHAN_CNTRL_3(c)		(0x0418 + (c) * 0x40) /* v8.0 */
+#define ADI_ADC_PN_SEL(x)		(((x) & 0xF) << 16)
+#define ADI_TO_ADC_PN_SEL(x)		(((x) >> 16) & 0xF)
+#define ADI_ADC_DATA_SEL(x)		(((x) & 0xF) << 0)
+#define ADI_TO_ADC_DATA_SEL(x)		(((x) >> 0) & 0xF)
 
-#define AXI_DMAC_CTRL_ENABLE			(1 << 0)
-#define AXI_DMAC_CTRL_PAUSE				(1 << 1)
+enum adc_pn_sel {
+	ADC_PN9 = 0,
+	ADC_PN23A = 1,
+	ADC_PN7 = 4,
+	ADC_PN15 = 5,
+	ADC_PN23 = 6,
+	ADC_PN31 = 7,
+	ADC_PN_CUSTOM = 9,
+	ADC_PN_END = 10,
+};
 
-#define AXI_DMAC_IRQ_SOT				(1 << 0)
-#define AXI_DMAC_IRQ_EOT				(1 << 1)
+enum adc_data_sel {
+	ADC_DATA_SEL_NORM,
+	ADC_DATA_SEL_LB, /* DAC loopback */
+	ADC_DATA_SEL_RAMP, /* TBD */
+};
 
 /******************************************************************************/
 /************************ Functions Declarations ******************************/
 /******************************************************************************/
-void adc_init(uint32_t adi_num);
-int32_t adc_capture(uint32_t size, uint32_t start_address, uint32_t adi_num);
+int32_t spi_init(uint32_t device_id,
+				 uint8_t  clk_pha,
+				 uint8_t  clk_pol);
+int32_t spi_read(uint8_t *data,
+				 uint8_t bytes_number);
+int spi_write_then_read(struct spi_device *spi,
+		const unsigned char *txbuf, unsigned n_tx,
+		unsigned char *rxbuf, unsigned n_rx);
 
-//void axiadc_write(uint32_t reg, uint32_t val);
-void axiadc_write(uint32_t reg, uint32_t val, uint32_t adi_num);
+int32_t get_spi_ss();
+void    set_spi_ss(int32_t ss);
 
-//uint32_t axiadc_read(uint32_t reg);
-uint32_t axiadc_read(uint32_t reg, uint32_t adi_num);
+void gpio_init(uint32_t device_id);
+void gpio_direction(uint8_t pin, uint8_t direction);
+bool gpio_is_valid(int number);
+void gpio_set_value(unsigned gpio, int value);
+void udelay(unsigned long usecs);
+void mdelay(unsigned long msecs);
+unsigned long msleep_interruptible(unsigned int msecs);
+
+void axiadc_init(struct ad9361_rf_phy *phy);
+unsigned int axiadc_read(struct axiadc_state *st, unsigned long reg, struct ad9361_rf_phy *phy);
+void axiadc_write(struct axiadc_state *st, unsigned reg, unsigned val, struct ad9361_rf_phy *phy);
+int axiadc_set_pnsel(struct axiadc_state *st, int channel, enum adc_pn_sel sel, struct ad9361_rf_phy *phy);
 
 #endif

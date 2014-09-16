@@ -40,17 +40,13 @@
 /******************************************************************************/
 /***************************** Include Files **********************************/
 /******************************************************************************/
-#include "stdint.h"
-#include "xil_io.h"
-#include "xil_cache.h"
-#include "sleep.h"
-#include "parameters.h"
+#include <stdint.h>
+#include <stdlib.h>
+#include <xil_cache.h>
+#include <xil_io.h>
 #include "adc_core.h"
-#include "stdlib.h"
-
-#include "dac_core.h"
+#include "parameters.h"
 #include "xtime_l.h"
-
 
 /***************************************************************************//**
  * @brief adc_read
@@ -109,14 +105,14 @@ void adc_write(uint32_t regAddr, uint32_t data, uint32_t adi_num)
 //
 //	return val;
 //}
-uint32_t axiadc_read(uint32_t reg, uint32_t adi_num)
-{
-	uint32_t val;
-
-	adc_read(reg, &val, adi_num);
-
-	return val;
-}
+//uint32_t axiadc_read(uint32_t reg, uint32_t adi_num)
+//{
+//	uint32_t val;
+//
+//	adc_read(reg, &val, adi_num);
+//
+//	return val;
+//}
 
 /***************************************************************************//**
  * @brief axiadc_write
@@ -125,10 +121,10 @@ uint32_t axiadc_read(uint32_t reg, uint32_t adi_num)
 //{
 //	adc_write(reg, val);
 //}
-void axiadc_write(uint32_t reg, uint32_t val, uint32_t adi_num)
-{
-	adc_write(reg, val, adi_num);
-}
+//void axiadc_write(uint32_t reg, uint32_t val, uint32_t adi_num)
+//{
+//	adc_write(reg, val, adi_num);
+//}
 
 /***************************************************************************//**
  * @brief adc_dma_read
@@ -211,7 +207,6 @@ int32_t adc_capture(uint32_t size, uint32_t start_address, uint32_t adi_num)
 
 	XTime_GetTime(&tCur);
 	tEnd  = tCur + ((XTime) timeout_sec) * COUNTS_PER_SECOND;
-
 
 	adc_dma_write(AXI_DMAC_REG_CTRL, 0x0, adi_num);
 	adc_dma_write(AXI_DMAC_REG_CTRL, AXI_DMAC_CTRL_ENABLE, adi_num);

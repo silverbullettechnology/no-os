@@ -40,32 +40,28 @@
 #define __PARAMETERS_H__
 
 /******************************************************************************/
-/***************************** Include Files **********************************/
-/******************************************************************************/
-#include "xparameters.h"
-
-/******************************************************************************/
 /********************** Macros and Constants Definitions **********************/
 /******************************************************************************/
-#define CF_AD9361_RX_BASEADDR		XPAR_AXI_AD9361_0_BASEADDR
-#define CF_AD9361_TX_BASEADDR		XPAR_AXI_AD9361_0_BASEADDR + 0x4000
-#define CF_AD9361_RX_DMA_BASEADDR	XPAR_AXI_DMAC_0_BASEADDR
-#define CF_AD9361_TX_DMA_BASEADDR	XPAR_AXI_DMAC_1_BASEADDR
-#define ADC_DDR_BASEADDR			XPAR_DDR_MEM_BASEADDR + 0x800000
-#define DAC_DDR_BASEADDR			XPAR_DDR_MEM_BASEADDR + 0xA000000
+#define CF_AD9361_RX_BASEADDR		0
+#define CF_AD9361_TX_BASEADDR		0
+#define CF_AD9361_RX_DMA_BASEADDR	0
+#define CF_AD9361_TX_DMA_BASEADDR	0
 
-#define GPIO_DEVICE_ID				XPAR_PS7_GPIO_0_DEVICE_ID
-#define SPI_DEVICE_ID				XPAR_PS7_SPI_0_DEVICE_ID
+#define ADC_DDR_BASEADDR		0
+#define DAC_DDR_BASEADDR		0
 
-#define CF_AD9361_0_RX_BASEADDR		XPAR_AXI_AD9361_0_BASEADDR
-#define CF_AD9361_0_TX_BASEADDR		XPAR_AXI_AD9361_0_BASEADDR + 0x4000
-#define CF_AD9361_0_RX_DMA_BASEADDR	XPAR_AXI_DMAC_0_BASEADDR
-#define CF_AD9361_0_TX_DMA_BASEADDR	XPAR_AXI_DMAC_1_BASEADDR
+#define GPIO_DEVICE_ID			0
+#define GPIO_RESET_PIN			100
+#define SPI_DEVICE_ID			0
 
-#define CF_AD9361_1_RX_BASEADDR		XPAR_AXI_AD9361_1_BASEADDR
-#define CF_AD9361_1_TX_BASEADDR		XPAR_AXI_AD9361_1_BASEADDR + 0x4000
-#define CF_AD9361_1_RX_DMA_BASEADDR	XPAR_AXI_DMAC_2_BASEADDR
-#define CF_AD9361_1_TX_DMA_BASEADDR	XPAR_AXI_DMAC_3_BASEADDR
+#define AD9361_UIO_DEV			"/dev/uio0"
+#define RXDMA_UIO_DEV			"/dev/uio1"
+#define TXDMA_UIO_DEV			"/dev/uio2"
+#define SPIDEV_DEV			"/dev/spidev32766.0"
 
+#define RX_BUFF_MEM_ADDR		0x20000000	// FIXME
+#define RX_BUFF_MEM_SIZE		0x20000		// FIXME
+#define TX_BUFF_MEM_ADDR		0x30000000	// FIXME
+#define TX_BUFF_MEM_SIZE		0x1000		// FIXME
 
 #endif // __PARAMETERS_H__

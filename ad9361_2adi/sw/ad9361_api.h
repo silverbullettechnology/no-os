@@ -56,6 +56,10 @@ typedef struct
 	uint8_t		frequency_division_duplex_mode_enable;	/* adi,frequency-division-duplex-mode-enable */
 	uint8_t		tdd_use_dual_synth_mode_enable;	/* adi,tdd-use-dual-synth-mode-enable */
 	uint8_t		tdd_skip_vco_cal_enable;		/* adi,tdd-skip-vco-cal-enable */
+	uint32_t	tx_fastlock_delay_ns;	/* adi,tx-fastlock-delay-ns */
+	uint32_t	rx_fastlock_delay_ns;	/* adi,rx-fastlock-delay-ns */
+	uint8_t		rx_fastlock_pincontrol_enable;	/* adi,rx-fastlock-pincontrol-enable */
+	uint8_t		tx_fastlock_pincontrol_enable;	/* adi,tx-fastlock-pincontrol-enable */
 	uint8_t		external_rx_lo_enable;	/* adi,external-rx-lo-enable */
 	uint8_t		external_tx_lo_enable;	/* adi,external-tx-lo-enable */
 	uint8_t		dc_offset_tracking_update_event_mask;	/* adi,dc-offset-tracking-update-event-mask */
@@ -127,6 +131,38 @@ typedef struct
 	uint8_t		agc_outer_thresh_low_inc_steps;	/* adi,agc-outer-thresh-low-inc-steps */
 	uint32_t	agc_attack_delay_extra_margin_us;	/* adi,agc-attack-delay-extra-margin-us */
 	uint8_t		agc_sync_for_gain_counter_enable;	/* adi,agc-sync-for-gain-counter-enable */
+	/* Fast AGC */
+	uint32_t	fagc_dec_pow_measuremnt_duration;	/* adi,fagc-dec-pow-measurement-duration */
+	uint32_t	fagc_state_wait_time_ns;	/* adi,fagc-state-wait-time-ns */
+		/* Fast AGC - Low Power */
+	uint8_t		fagc_allow_agc_gain_increase;	/* adi,fagc-allow-agc-gain-increase-enable */
+	uint32_t	fagc_lp_thresh_increment_time;	/* adi,fagc-lp-thresh-increment-time */
+	uint32_t	fagc_lp_thresh_increment_steps;	/* adi,fagc-lp-thresh-increment-steps */
+		/* Fast AGC - Lock Level */
+	uint32_t	fagc_lock_level;	/* adi,fagc-lock-level */
+	uint8_t		fagc_lock_level_lmt_gain_increase_en;	/* adi,fagc-lock-level-lmt-gain-increase-enable */
+	uint32_t	fagc_lock_level_gain_increase_upper_limit;	/* adi,fagc-lock-level-gain-increase-upper-limit */
+		/* Fast AGC - Peak Detectors and Final Settling */
+	uint32_t	fagc_lpf_final_settling_steps;	/* adi,fagc-lpf-final-settling-steps */
+	uint32_t	fagc_lmt_final_settling_steps;	/* adi,fagc-lmt-final-settling-steps */
+	uint32_t	fagc_final_overrange_count;	/* adi,fagc-final-overrange-count */
+		/* Fast AGC - Final Power Test */
+	uint8_t		fagc_gain_increase_after_gain_lock_en;	/* adi,fagc-gain-increase-after-gain-lock-enable */
+		/* Fast AGC - Unlocking the Gain */
+	uint32_t	fagc_gain_index_type_after_exit_rx_mode;	/* adi,fagc-gain-index-type-after-exit-rx-mode */
+	uint8_t		fagc_use_last_lock_level_for_set_gain_en;	/* adi,fagc-use-last-lock-level-for-set-gain-enable */
+	uint8_t		fagc_rst_gla_stronger_sig_thresh_exceeded_en;	/* adi,fagc-rst-gla-stronger-sig-thresh-exceeded-enable */
+	uint32_t	fagc_optimized_gain_offset;	/* adi,fagc-optimized-gain-offset */
+	uint32_t	fagc_rst_gla_stronger_sig_thresh_above_ll;	/* adi,fagc-rst-gla-stronger-sig-thresh-above-ll */
+	uint8_t		fagc_rst_gla_engergy_lost_sig_thresh_exceeded_en;	/* adi,fagc-rst-gla-engergy-lost-sig-thresh-exceeded-enable */
+	uint8_t		fagc_rst_gla_engergy_lost_goto_optim_gain_en;	/* adi,fagc-rst-gla-engergy-lost-goto-optim-gain-enable */
+	uint32_t	fagc_rst_gla_engergy_lost_sig_thresh_below_ll;	/* adi,fagc-rst-gla-engergy-lost-sig-thresh-below-ll */
+	uint32_t	fagc_energy_lost_stronger_sig_gain_lock_exit_cnt;	/* adi,fagc-energy-lost-stronger-sig-gain-lock-exit-cnt */
+	uint8_t		fagc_rst_gla_large_adc_overload_en;	/* adi,fagc-rst-gla-large-adc-overload-enable */
+	uint8_t		fagc_rst_gla_large_lmt_overload_en;	/* adi,fagc-rst-gla-large-lmt-overload-enable */
+	uint8_t		fagc_rst_gla_en_agc_pulled_high_en;	/* adi,fagc-rst-gla-en-agc-pulled-high-enable */
+	uint32_t	fagc_rst_gla_if_en_agc_pulled_high_mode;	/* adi,fagc-rst-gla-if-en-agc-pulled-high-mode */
+	uint32_t	fagc_power_measurement_duration_in_state5;	/* adi,fagc-power-measurement-duration-in-state5 */
 	/* RSSI Control */
 	uint32_t	rssi_delay;	/* adi,rssi-delay */
 	uint32_t	rssi_duration;	/* adi,rssi-duration */
@@ -136,6 +172,20 @@ typedef struct
 	/* Aux ADC Control */
 	uint32_t	aux_adc_decimation;	/* adi,aux-adc-decimation */
 	uint32_t	aux_adc_rate;	/* adi,aux-adc-rate */
+	/* AuxDAC Control */
+	uint8_t		aux_dac_manual_mode_enable;	/* adi,aux-dac-manual-mode-enable */
+	uint32_t	aux_dac1_default_value_mV;	/* adi,aux-dac1-default-value-mV */
+	uint8_t		aux_dac1_active_in_rx_enable;	/* adi,aux-dac1-active-in-rx-enable */
+	uint8_t		aux_dac1_active_in_tx_enable;	/* adi,aux-dac1-active-in-tx-enable */
+	uint8_t		aux_dac1_active_in_alert_enable;	/* adi,aux-dac1-active-in-alert-enable */
+	uint32_t	aux_dac1_rx_delay_us;	/* adi,aux-dac1-rx-delay-us */
+	uint32_t	aux_dac1_tx_delay_us;	/* adi,aux-dac1-tx-delay-us */
+	uint32_t	aux_dac2_default_value_mV;	/* adi,aux-dac2-default-value-mV */
+	uint8_t		aux_dac2_active_in_rx_enable;	/* adi,aux-dac2-active-in-rx-enable */
+	uint8_t		aux_dac2_active_in_tx_enable;	/* adi,aux-dac2-active-in-tx-enable */
+	uint8_t		aux_dac2_active_in_alert_enable;	/* adi,aux-dac2-active-in-alert-enable */
+	uint32_t	aux_dac2_rx_delay_us;	/* adi,aux-dac2-rx-delay-us */
+	uint32_t	aux_dac2_tx_delay_us;	/* adi,aux-dac2-tx-delay-us */
 	/* Temperature Sensor Control */
 	uint32_t	temp_sense_decimation;	/* adi,temp-sense-decimation */
 	uint16_t	temp_sense_measurement_interval_ms;	/* adi,temp-sense-measurement-interval-ms */
@@ -176,6 +226,25 @@ typedef struct
 	uint32_t	tx_data_delay;	/* adi,tx-data-delay */
 	uint32_t	lvds_bias_mV;	/* adi,lvds-bias-mV */
 	uint8_t		lvds_rx_onchip_termination_enable;	/* adi,lvds-rx-onchip-termination-enable */
+	uint8_t		rx1rx2_phase_inversion_en;	/* adi,rx1-rx2-phase-inversion-enable */
+	/* Tx Monitor Control */
+	uint32_t	low_high_gain_threshold_mdB;	/* adi,txmon-low-high-thresh */
+	uint32_t	low_gain_dB;	/* adi,txmon-low-gain */
+	uint32_t	high_gain_dB;	/* adi,txmon-high-gain */
+	uint8_t		tx_mon_track_en;	/* adi,txmon-dc-tracking-enable */
+	uint8_t		one_shot_mode_en;	/* adi,txmon-one-shot-mode-enable */
+	uint32_t	tx_mon_delay;	/* adi,txmon-delay */
+	uint32_t	tx_mon_duration;	/* adi,txmon-duration */
+	uint32_t	tx1_mon_front_end_gain;	/* adi,txmon-1-front-end-gain */
+	uint32_t	tx2_mon_front_end_gain;	/* adi,txmon-2-front-end-gain */
+	uint32_t	tx1_mon_lo_cm;	/* adi,txmon-1-lo-cm */
+	uint32_t	tx2_mon_lo_cm;	/* adi,txmon-2-lo-cm */
+	/* GPIO definitions */
+	int32_t		gpio_resetb;	/* reset-gpios */
+	/* MCS Sync */
+	int32_t		gpio_sync;		/* sync-gpios */
+	int32_t		gpio_cal_sw1;	/* cal-sw1-gpios */
+	int32_t		gpio_cal_sw2;	/* cal-sw2-gpios */
 }AD9361_InitParam;
 
 typedef struct
@@ -183,7 +252,7 @@ typedef struct
 	uint32_t rx;			/* 1, 2, 3(both) */
 	int32_t rx_gain;		/* -12, -6, 0, 6 */
 	uint32_t rx_dec;		/* 1, 2, 4 */
-	int16_t rx_coef[64];
+	int16_t rx_coef[128];
 }AD9361_RXFIRConfig;
 
 typedef struct
@@ -191,7 +260,7 @@ typedef struct
 	uint32_t tx;			/* 1, 2, 3(both) */
 	int32_t tx_gain;		/* -6, 0 */
 	uint32_t tx_int;		/* 1, 2, 4 */
-	int16_t tx_coef[64];
+	int16_t tx_coef[128];
 }AD9361_TXFIRConfig;
 
 /******************************************************************************/
@@ -199,7 +268,7 @@ typedef struct
 /******************************************************************************/
 /* Initialize the AD9361 part. */
 //struct ad9361_rf_phy *ad9361_init (AD9361_InitParam *init_param);
-struct ad9361_rf_phy *ad9361_init (AD9361_InitParam *init_param, int gpio_resetb, u8 pcore_id);
+struct ad9361_rf_phy *ad9361_init (AD9361_InitParam *init_param, int gpio_resetb, int pcore_id);
 /* Set the Enable State Machine (ENSM) mode. */
 int32_t ad9361_set_en_state_machine_mode (struct ad9361_rf_phy *phy, uint32_t mode);
 /* Get the Enable State Machine (ENSM) mode. */
@@ -232,6 +301,18 @@ int32_t ad9361_set_rx_fir_config (struct ad9361_rf_phy *phy, AD9361_RXFIRConfig 
 int32_t ad9361_set_rx_fir_en_dis (struct ad9361_rf_phy *phy, uint8_t en_dis);
 /* Get the status of the RX FIR filter. */
 int32_t ad9361_get_rx_fir_en_dis (struct ad9361_rf_phy *phy, uint8_t *en_dis);
+/* Enable/disable the RX RFDC Tracking. */
+int32_t ad9361_set_rx_rfdc_track_en_dis (struct ad9361_rf_phy *phy, uint8_t en_dis);
+/* Get the status of the RX RFDC Tracking. */
+int32_t ad9361_get_rx_rfdc_track_en_dis (struct ad9361_rf_phy *phy, uint8_t *en_dis);
+/* Enable/disable the RX BasebandDC Tracking. */
+int32_t ad9361_set_rx_bbdc_track_en_dis (struct ad9361_rf_phy *phy, uint8_t en_dis);
+/* Get the status of the RX BasebandDC Tracking. */
+int32_t ad9361_get_rx_bbdc_track_en_dis (struct ad9361_rf_phy *phy, uint8_t *en_dis);
+/* Enable/disable the RX Quadrature Tracking. */
+int32_t ad9361_set_rx_quad_track_en_dis (struct ad9361_rf_phy *phy, uint8_t en_dis);
+/* Get the status of the RX Quadrature Tracking. */
+int32_t ad9361_get_rx_quad_track_en_dis (struct ad9361_rf_phy *phy, uint8_t *en_dis);
 /* Set the transmit attenuation for the selected channel. */
 int32_t ad9361_set_tx_attenuation (struct ad9361_rf_phy *phy, uint8_t ch, uint32_t attenuation_mdb);
 /* Get current transmit attenuation for the selected channel. */
@@ -254,4 +335,8 @@ int32_t ad9361_set_tx_fir_config (struct ad9361_rf_phy *phy, AD9361_TXFIRConfig 
 int32_t ad9361_set_tx_fir_en_dis (struct ad9361_rf_phy *phy, uint8_t en_dis);
 /* Get the status of the TX FIR filter. */
 int32_t ad9361_get_tx_fir_en_dis (struct ad9361_rf_phy *phy, uint8_t *en_dis);
+/* Set the RX and TX path rates. */
+int32_t ad9361_set_trx_path_clks(struct ad9361_rf_phy *phy, uint32_t *rx_path_clks, uint32_t *tx_path_clks);
+/* Get the RX and TX path rates. */
+int32_t ad9361_get_trx_path_clks(struct ad9361_rf_phy *phy, uint32_t *rx_path_clks, uint32_t *tx_path_clks);
 #endif

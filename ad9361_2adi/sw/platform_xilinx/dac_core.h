@@ -39,31 +39,43 @@
 #ifndef DAC_CORE_API_H_
 #define DAC_CORE_API_H_
 
-#include "ad9361_api.h"
+/******************************************************************************/
+/***************************** Include Files **********************************/
+/******************************************************************************/
+#include "ad9361.h"
 
 /******************************************************************************/
 /********************** Macros and Constants Definitions **********************/
 /******************************************************************************/
-#define ADI_REG_PCORE_VER		0x0000
-#define ADI_REG_PCORE_ID		0x0004
+#define ADI_REG_VERSION			0x0000
+#define ADI_VERSION(x)			(((x) & 0xffffffff) << 0)
+#define VERSION_IS(x,y,z)		((x) << 16 | (y) << 8 | (z))
+#define ADI_REG_ID				0x0004
+#define ADI_ID(x)				(((x) & 0xffffffff) << 0)
+#define ADI_REG_SCRATCH			0x0008
+#define ADI_SCRATCH(x)			(((x) & 0xffffffff) << 0)
+
+#define PCORE_VERSION_MAJOR(version)	(version >> 16)
 
 #define ADI_REG_RSTN			0x0040
 #define ADI_RSTN				(1 << 0)
+#define ADI_MMCM_RSTN 			(1 << 1)
 
 #define ADI_REG_RATECNTRL		0x004C
 #define ADI_RATE(x)				(((x) & 0xFF) << 0)
 #define ADI_TO_RATE(x)			(((x) >> 0) & 0xFF)
 
 #define ADI_REG_CNTRL_1			0x0044
-#define ADI_ENABLE				(1 << 0)
+#define ADI_ENABLE				(1 << 0) /* v7.0 */
+#define ADI_SYNC				(1 << 0) /* v8.0 */
 
 #define ADI_REG_CNTRL_2			0x0048
 #define ADI_PAR_TYPE			(1 << 7)
 #define ADI_PAR_ENB				(1 << 6)
 #define ADI_R1_MODE				(1 << 5)
 #define ADI_DATA_FORMAT			(1 << 4)
-#define ADI_DATA_SEL(x)			(((x) & 0xF) << 0)
-#define ADI_TO_DATA_SEL(x)		(((x) >> 0) & 0xF)
+#define ADI_DATA_SEL(x)			(((x) & 0xF) << 0) /* v7.0 */
+#define ADI_TO_DATA_SEL(x)		(((x) >> 0) & 0xF) /* v7.0 */
 
 #define ADI_REG_VDMA_FRMCNT		0x0084
 #define ADI_VDMA_FRMCNT(x)		(((x) & 0xFFFFFFFF) << 0)
@@ -73,15 +85,22 @@
 #define ADI_VDMA_OVF			(1 << 1)
 #define ADI_VDMA_UNF			(1 << 0)
 
-enum {
+enum dds_data_select {
 	DATA_SEL_DDS,
 	DATA_SEL_SED,
 	DATA_SEL_DMA,
+	DATA_SEL_ZERO,	/* OUTPUT 0 */
+	DATA_SEL_PN7,
+	DATA_SEL_PN15,
+	DATA_SEL_PN23,
+	DATA_SEL_PN31,
+	DATA_SEL_LB,	/* loopback data (ADC) */
+	DATA_SEL_PNXX,	/* (Device specific) */
 };
 
 #define ADI_REG_CHAN_CNTRL_1_IIOCHAN(x)	(0x0400 + ((x) >> 1) * 0x40 + ((x) & 1) * 0x8)
-#define ADI_DDS_SCALE(x)				(((x) & 0xF) << 0)
-#define ADI_TO_DDS_SCALE(x)				(((x) >> 0) & 0xF)
+#define ADI_DDS_SCALE(x)				(((x) & 0xFFFF) << 0)
+#define ADI_TO_DDS_SCALE(x)				(((x) >> 0) & 0xFFFF)
 
 #define ADI_REG_CHAN_CNTRL_2_IIOCHAN(x)	(0x0404 + ((x) >> 1) * 0x40 + ((x) & 1) * 0x8)
 #define ADI_DDS_INIT(x)					(((x) & 0xFFFF) << 16)
@@ -126,22 +145,32 @@ enum {
 #define AXI_DMAC_IRQ_SOT				(1 << 0)
 #define AXI_DMAC_IRQ_EOT				(1 << 1)
 
-//struct dds_state
-//{
-//	uint32_t	cached_freq[8];
-//	uint32_t	cached_phase[8];
-//	uint32_t	cached_scale[8];
-//	uint32_t	*dac_clk;
-//};
+/*
+struct dds_state
+{
+	uint32_t	cached_freq[8];
+	uint32_t	cached_phase[8];
+	double		cached_scale[8];
+	uint32_t	*dac_clk;
+	uint32_t	pcore_version;
+	uint32_t	num_dds_channels;
+	bool		enable;
+};
+*/
+
+#define ADI_REG_CHAN_CNTRL_7(c)		(0x0418 + (c) * 0x40) /* v8.0 */
+#define ADI_DAC_DDS_SEL(x)		(((x) & 0xF) << 0)
+#define ADI_TO_DAC_DDS_SEL(x)		(((x) >> 0) & 0xF)
 
 /******************************************************************************/
 /************************ Functions Declarations ******************************/
 /******************************************************************************/
-void dac_init(uint8_t data_sel, struct ad9361_rf_phy *phy);
+void dac_init(struct ad9361_rf_phy *phy, uint8_t data_sel);
 void dac_dma_loop();
 void dds_set_frequency(uint32_t chan, uint32_t freq, struct ad9361_rf_phy *phy);
 void dds_set_phase(uint32_t chan, uint32_t phase, struct ad9361_rf_phy *phy);
-void dds_set_scale(uint32_t chan, uint32_t scale, struct ad9361_rf_phy *phy);
+void dds_set_scale(uint32_t chan, double scale, struct ad9361_rf_phy *phy);
 void dds_update(struct ad9361_rf_phy *phy);
+int dac_datasel(int32_t chan, enum dds_data_select sel, struct ad9361_rf_phy *phy);
 
 #endif

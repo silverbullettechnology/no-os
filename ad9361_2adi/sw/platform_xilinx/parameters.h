@@ -1,6 +1,6 @@
 /***************************************************************************//**
- *   @file   common.h
- *   @brief  Header file of Common Driver.
+ *   @file   parameters.h
+ *   @brief  Parameters Definitions.
  *   @author DBogdan (dragos.bogdan@analog.com)
 ********************************************************************************
  * Copyright 2013(c) Analog Devices, Inc.
@@ -36,55 +36,75 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *******************************************************************************/
-#ifndef COMMON_H_
-#define COMMON_H_
+#ifndef __PARAMETERS_H__
+#define __PARAMETERS_H__
 
 /******************************************************************************/
 /***************************** Include Files **********************************/
 /******************************************************************************/
-#include <stdint.h>
+#include <xparameters.h>
 
 /******************************************************************************/
 /********************** Macros and Constants Definitions **********************/
 /******************************************************************************/
-#define false	0
-#define true	1
+#ifdef XPAR_AXI_AD9361_BASEADDR
+#define CF_AD9361_RX_BASEADDR		XPAR_AXI_AD9361_0_BASEADDR
+#define CF_AD9361_TX_BASEADDR		XPAR_AXI_AD9361_0_BASEADDR + 0x4000
+#else
+#define CF_AD9361_RX_BASEADDR		XPAR_AXI_AD9361_0_BASEADDR
+#define CF_AD9361_TX_BASEADDR		XPAR_AXI_AD9361_0_BASEADDR + 0x4000
 
-#define EIO			5	/* I/O error */
-#define EAGAIN		11	/* Try again */
-#define ENOMEM		12	/* Out of memory */
-#define EFAULT		14	/* Bad address */
-#define ENODEV		19	/* No such device */
-#define EINVAL		22	/* Invalid argument */
-#define ETIMEDOUT	110	/* Connection timed out */
-
-/******************************************************************************/
-/*************************** Types Declarations *******************************/
-/******************************************************************************/
-#ifndef WIN32
-typedef uint8_t	bool;
+#define CF_AD9361_0_RX_BASEADDR		XPAR_AXI_AD9361_0_BASEADDR
+#define CF_AD9361_0_TX_BASEADDR		XPAR_AXI_AD9361_0_BASEADDR + 0x4000
+#define CF_AD9361_1_RX_BASEADDR		XPAR_AXI_AD9361_1_BASEADDR
+#define CF_AD9361_1_TX_BASEADDR		XPAR_AXI_AD9361_1_BASEADDR + 0x4000
 #endif
 
-struct clk {
-	const char	*name;
-	uint32_t	rate;
-};
 
-struct clk_hw {
-		struct clk *clk;
-};
+#ifdef XPAR_AXI_DMAC_0_BASEADDR
+#define CF_AD9361_RX_DMA_BASEADDR	XPAR_AXI_DMAC_0_BASEADDR
+#else
+#define CF_AD9361_RX_DMA_BASEADDR	XPAR_AXI_AD9361_0_ADC_DMA_BASEADDR
 
-struct clk_init_data {
-	const char				*name;
-	const struct clk_ops	*ops;
-	const char				**parent_names;
-	uint8_t					num_parents;
-	uint32_t				flags;
-};
-
-struct clk_onecell_data {
-	struct clk		**clks;
-	uint32_t		clk_num;
-};
-
+#define CF_AD9361_0_RX_DMA_BASEADDR	XPAR_AXI_AD9361_0_ADC_DMA_BASEADDR
+#define CF_AD9361_1_RX_DMA_BASEADDR	XPAR_AXI_AD9361_1_ADC_DMA_BASEADDR
 #endif
+
+
+#ifdef XPAR_AXI_DMAC_1_BASEADDR
+#define CF_AD9361_TX_DMA_BASEADDR	XPAR_AXI_DMAC_1_BASEADDR
+#else
+#define CF_AD9361_TX_DMA_BASEADDR	XPAR_AXI_AD9361_0_DAC_DMA_BASEADDR
+
+#define CF_AD9361_0_TX_DMA_BASEADDR	XPAR_AXI_AD9361_0_DAC_DMA_BASEADDR
+#define CF_AD9361_1_TX_DMA_BASEADDR	XPAR_AXI_AD9361_1_DAC_DMA_BASEADDR
+#endif
+
+#ifdef _XPARAMETERS_PS_H_
+#define ADC_DDR_BASEADDR			XPAR_DDR_MEM_BASEADDR + 0x800000
+#define DAC_DDR_BASEADDR			XPAR_DDR_MEM_BASEADDR + 0xA000000
+
+#define GPIO_DEVICE_ID				XPAR_PS7_GPIO_0_DEVICE_ID
+#define GPIO_RESET_PIN				100
+#define GPIO_RESET_PIN_ZC702		84
+#define GPIO_RESET_PIN_ZC706		83
+#define GPIO_RESET_PIN_ZED			100
+#define SPI_DEVICE_ID				XPAR_PS7_SPI_0_DEVICE_ID
+#else
+#ifdef XPAR_DDR3_SDRAM_S_AXI_BASEADDR
+#define ADC_DDR_BASEADDR			XPAR_DDR3_SDRAM_S_AXI_BASEADDR + 0x800000
+#define DAC_DDR_BASEADDR			XPAR_DDR3_SDRAM_S_AXI_BASEADDR + 0xA000000
+#else
+#define ADC_DDR_BASEADDR			XPAR_AXI_DDR_CNTRL_BASEADDR + 0x800000
+#define DAC_DDR_BASEADDR			XPAR_AXI_DDR_CNTRL_BASEADDR + 0xA000000
+#endif
+#define GPIO_DEVICE_ID				0
+#define GPIO_RESET_PIN				14
+#ifdef XPAR_AXI_SPI_0_DEVICE_ID
+#define SPI_DEVICE_ID				XPAR_AXI_SPI_0_DEVICE_ID
+#else
+#define SPI_DEVICE_ID				XPAR_SPI_0_DEVICE_ID
+#endif
+#endif
+
+#endif // __PARAMETERS_H__

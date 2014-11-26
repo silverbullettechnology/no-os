@@ -369,7 +369,7 @@ void axiadc_init(struct ad9361_rf_phy *phy)
 	u8 adi_num;
 	adi_num = phy->pcore_id;
 
-	adc_init(adi_num);
+	adc_init(phy);
 	dac_init(phy, DATA_SEL_DDS);
 }
 

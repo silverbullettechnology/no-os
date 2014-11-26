@@ -85,18 +85,21 @@
 #define ADI_VDMA_OVF			(1 << 1)
 #define ADI_VDMA_UNF			(1 << 0)
 
+/* moved to ad9361.h */
+/*
 enum dds_data_select {
 	DATA_SEL_DDS,
 	DATA_SEL_SED,
 	DATA_SEL_DMA,
-	DATA_SEL_ZERO,	/* OUTPUT 0 */
+	DATA_SEL_ZERO,	// OUTPUT 0
 	DATA_SEL_PN7,
 	DATA_SEL_PN15,
 	DATA_SEL_PN23,
 	DATA_SEL_PN31,
-	DATA_SEL_LB,	/* loopback data (ADC) */
-	DATA_SEL_PNXX,	/* (Device specific) */
+	DATA_SEL_LB,	// loopback data (ADC)
+	DATA_SEL_PNXX,	// (Device specific)
 };
+*/
 
 #define ADI_REG_CHAN_CNTRL_1_IIOCHAN(x)	(0x0400 + ((x) >> 1) * 0x40 + ((x) & 1) * 0x8)
 #define ADI_DDS_SCALE(x)				(((x) & 0xFFFF) << 0)
@@ -145,6 +148,7 @@ enum dds_data_select {
 #define AXI_DMAC_IRQ_SOT				(1 << 0)
 #define AXI_DMAC_IRQ_EOT				(1 << 1)
 
+/* moved to ad9361.h */
 /*
 struct dds_state
 {
@@ -169,7 +173,7 @@ void dac_init(struct ad9361_rf_phy *phy, uint8_t data_sel);
 void dac_dma_loop();
 void dds_set_frequency(uint32_t chan, uint32_t freq, struct ad9361_rf_phy *phy);
 void dds_set_phase(uint32_t chan, uint32_t phase, struct ad9361_rf_phy *phy);
-void dds_set_scale(uint32_t chan, double scale, struct ad9361_rf_phy *phy);
+void dds_set_scale(uint32_t chan, int32_t scale_micro_units, struct ad9361_rf_phy *phy);
 void dds_update(struct ad9361_rf_phy *phy);
 int dac_datasel(int32_t chan, enum dds_data_select sel, struct ad9361_rf_phy *phy);
 

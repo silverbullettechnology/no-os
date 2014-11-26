@@ -3722,15 +3722,38 @@ struct ad9361_fastlock {
 	struct ad9361_fastlock_entry entry[2][8];
 };
 
+enum ad9361_bist_mode {
+	BIST_DISABLE,
+	BIST_INJ_TX,
+	BIST_INJ_RX,
+};
+
+/* moved from dac_core.h */
+enum dds_data_select {
+	DATA_SEL_DDS,
+	DATA_SEL_SED,
+	DATA_SEL_DMA,
+	DATA_SEL_ZERO,	/* OUTPUT 0 */
+	DATA_SEL_PN7,
+	DATA_SEL_PN15,
+	DATA_SEL_PN23,
+	DATA_SEL_PN31,
+	DATA_SEL_LB,	/* loopback data (ADC) */
+	DATA_SEL_PNXX,	/* (Device specific) */
+};
+
+/* moved from dac_core.h */
 struct dds_state
 {
-	uint32_t	cached_freq[8];
-	uint32_t	cached_phase[8];
-	double		cached_scale[8];
-	uint32_t	*dac_clk;
-	uint32_t	pcore_version;
-	uint32_t	num_dds_channels;
-	bool		enable;
+	uint32_t				cached_freq[8];
+	uint32_t				cached_phase[8];
+	int32_t					cached_scale[8];
+	enum dds_data_select	cached_datasel[8];
+	uint32_t				*dac_clk;
+	uint32_t				pcore_version;
+	uint32_t				num_dds_channels;
+	bool					enable;
+	bool					rx2tx2;
 };
 
 struct ad9361_rf_phy {
@@ -3771,6 +3794,13 @@ struct ad9361_rf_phy {
 	struct axiadc_converter	*adc_conv;
 	struct axiadc_state		*adc_state;
 
+	int32_t					bist_loopback_mode;
+	enum ad9361_bist_mode	bist_prbs_mode;
+	enum ad9361_bist_mode	bist_tone_mode;
+	uint32_t				bist_tone_freq_Hz;
+	uint32_t				bist_tone_level_dB;
+	uint32_t				bist_tone_mask;
+
 	struct dds_state dds_st;
 	uint8_t			pcore_id;
 
@@ -3794,12 +3824,6 @@ enum debugfs_cmd {
 	DBGFS_BIST_DT_ANALYSIS,
 	DBGFS_RXGAIN_1,
 	DBGFS_RXGAIN_2,
-};
-
-enum ad9361_bist_mode {
-	BIST_DISABLE,
-	BIST_INJ_TX,
-	BIST_INJ_RX,
 };
 
 enum {
@@ -3870,10 +3894,15 @@ int32_t ad9361_rfpll_set_rate(struct refclk_scale *clk_priv, uint32_t rate,
 int32_t ad9361_tracking_control(struct ad9361_rf_phy *phy, bool bbdc_track,
 	bool rfdc_track, bool rxquad_track);
 int32_t ad9361_bist_loopback(struct ad9361_rf_phy *phy, int32_t mode);
+void ad9361_get_bist_loopback(struct ad9361_rf_phy *phy, int32_t *mode);
 int32_t ad9361_bist_prbs(struct ad9361_rf_phy *phy, enum ad9361_bist_mode mode);
+void ad9361_get_bist_prbs(struct ad9361_rf_phy *phy, enum ad9361_bist_mode *mode);
 int32_t ad9361_bist_tone(struct ad9361_rf_phy *phy,
 						 enum ad9361_bist_mode mode, uint32_t freq_Hz,
 						 uint32_t level_dB, uint32_t mask);
+void ad9361_get_bist_tone(struct ad9361_rf_phy *phy,
+						 enum ad9361_bist_mode *mode, uint32_t *freq_Hz,
+						 uint32_t *level_dB, uint32_t *mask);
 
 int32_t ad9361_pp_port_setup(struct ad9361_rf_phy *phy, bool restore_c3);
 

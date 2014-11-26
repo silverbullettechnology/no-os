@@ -424,9 +424,6 @@ int main(void)
 	set_spi_ss(1); xil_printf ("9361_chip_1 after  %x \n\r", ad9361_spi_read(ad9361_phy_1->spi,REG_CTRL_OUTPUT_ENABLE));
 
 
-	xil_printf("************ ADC INIT *********************\n\r");
-	adc_init(0);
-	adc_init(1);
 
 //	xil_printf("************ DAC INIT *********************\n\r");
 //	dac_init(DATA_SEL_DDS);
@@ -452,6 +449,10 @@ int main(void)
 	ad9361_set_rx_fir_config(ad9361_phy_1, rx_fir_config);
 	ad9361_set_en_state_machine_mode(ad9361_phy_1,ENSM_STATE_ALERT);
 	ad9361_set_en_state_machine_mode(ad9361_phy_1,ENSM_STATE_FDD);
+
+	xil_printf("************ ADC INIT *********************\n\r");
+	adc_init(ad9361_phy_0);
+	adc_init(ad9361_phy_1);
 
 
 	// Read version and id registers from both adi controllers

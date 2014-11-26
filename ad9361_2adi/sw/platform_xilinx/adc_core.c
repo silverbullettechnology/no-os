@@ -48,6 +48,11 @@
 #include "parameters.h"
 #include "xtime_l.h"
 
+/******************************************************************************/
+/************************ Variables Definitions *******************************/
+/******************************************************************************/
+struct adc_state adc_st;
+
 /***************************************************************************//**
  * @brief adc_read
 *******************************************************************************/
@@ -173,8 +178,13 @@ void adc_dma_write(uint32_t regAddr, uint32_t data, uint32_t adi_num)
 /***************************************************************************//**
  * @brief adc_init
 *******************************************************************************/
-void adc_init(uint32_t adi_num)
+void adc_init(struct ad9361_rf_phy *phy)
 {
+	u8 adi_num;
+	adi_num = phy->pcore_id;
+
+	xil_printf("************ adc_init (%x) *********************\n\r", adi_num);
+
 	xil_printf("************ adc_write(ADI_REG_RSTN, 0) *********************\n\r");
 	adc_write(ADI_REG_RSTN, 0, adi_num);
 	xil_printf("************ ADI_REG_RSTN, ADI_RSTN *********************\n\r");
@@ -185,11 +195,15 @@ void adc_init(uint32_t adi_num)
 		ADI_IQCOR_ENB | ADI_FORMAT_SIGNEXT | ADI_FORMAT_ENABLE | ADI_ENABLE, adi_num);
 	adc_write(ADI_REG_CHAN_CNTRL(1),
 		ADI_IQCOR_ENB | ADI_FORMAT_SIGNEXT | ADI_FORMAT_ENABLE | ADI_ENABLE, adi_num);
-	adc_write(ADI_REG_CHAN_CNTRL(2),
-		ADI_IQCOR_ENB | ADI_FORMAT_SIGNEXT | ADI_FORMAT_ENABLE | ADI_ENABLE, adi_num);
-	adc_write(ADI_REG_CHAN_CNTRL(3),
-		ADI_IQCOR_ENB | ADI_FORMAT_SIGNEXT | ADI_FORMAT_ENABLE | ADI_ENABLE, adi_num);
 
+	adc_st.rx2tx2 = phy->pdata->rx2tx2;
+	if(adc_st.rx2tx2)
+	{
+		adc_write(ADI_REG_CHAN_CNTRL(2),
+			ADI_IQCOR_ENB | ADI_FORMAT_SIGNEXT | ADI_FORMAT_ENABLE | ADI_ENABLE, adi_num);
+		adc_write(ADI_REG_CHAN_CNTRL(3),
+			ADI_IQCOR_ENB | ADI_FORMAT_SIGNEXT | ADI_FORMAT_ENABLE | ADI_ENABLE, adi_num);
+	}
 	xil_printf("************ EXIT: adc_init(void) *********************\n\r");
 
 }
@@ -203,6 +217,17 @@ int32_t adc_capture(uint32_t size, uint32_t start_address, uint32_t adi_num)
 	uint32_t transfer_id;
 
 	XTime tEnd, tCur;
+	uint32_t length;
+
+	if(adc_st.rx2tx2)
+	{
+		length = (size * 8);
+	}
+	else
+	{
+		length = (size * 4);
+	}
+
 	int timeout_sec = 2;
 
 	XTime_GetTime(&tCur);
@@ -219,7 +244,7 @@ int32_t adc_capture(uint32_t size, uint32_t start_address, uint32_t adi_num)
 
 	adc_dma_write(AXI_DMAC_REG_DEST_ADDRESS, start_address, adi_num);
 	adc_dma_write(AXI_DMAC_REG_DEST_STRIDE, 0x0, adi_num);
-	adc_dma_write(AXI_DMAC_REG_X_LENGTH, (size * 8) - 1, adi_num);
+	adc_dma_write(AXI_DMAC_REG_X_LENGTH, length - 1, adi_num);
 	adc_dma_write(AXI_DMAC_REG_Y_LENGTH, 0x0, adi_num);
 
 	//dac_write(ADI_REG_CNTRL_1, ADI_ENABLE);   /// herwin

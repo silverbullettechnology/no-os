@@ -223,6 +223,7 @@ void dac_init (struct ad9361_rf_phy *phy, uint8_t data_sel)
 	uint32_t data_q1;
 	uint32_t data_i2;
 	uint32_t data_q2;
+	uint32_t length;
 	u8 adi_num;
 
 	adi_num = phy->pcore_id;
@@ -233,21 +234,33 @@ void dac_init (struct ad9361_rf_phy *phy, uint8_t data_sel)
 	dac_write(ADI_REG_RATECNTRL, ADI_RATE(3), adi_num);
 
 	phy->dds_st.dac_clk = &phy->clks[TX_SAMPL_CLK]->rate;
-	phy->dds_st.num_dds_channels = 8;	// FIXME
+	phy->dds_st.rx2tx2 = phy->pdata->rx2tx2;
+	if(phy->dds_st.rx2tx2)
+	{
+		phy->dds_st.num_dds_channels = 8;
+	}
+	else
+	{
+		phy->dds_st.num_dds_channels = 4;
+	}
 
 	dac_read(ADI_REG_VERSION, &phy->dds_st.pcore_version, adi_num);
+
 
 	dac_stop(phy);
 	switch (data_sel) {
 	case DATA_SEL_DDS:
-		dds_default_setup(DDS_CHAN_TX1_I_F1, 90000, 1000000, 0.25, phy);
-		dds_default_setup(DDS_CHAN_TX1_I_F2, 90000, 1000000, 0.25, phy);
-		dds_default_setup(DDS_CHAN_TX1_Q_F1, 0, 1000000, 0.25, phy);
-		dds_default_setup(DDS_CHAN_TX1_Q_F2, 0, 1000000, 0.25, phy);
-		dds_default_setup(DDS_CHAN_TX2_I_F1, 90000, 1000000, 0.25, phy);
-		dds_default_setup(DDS_CHAN_TX2_I_F2, 90000, 1000000, 0.25, phy);
-		dds_default_setup(DDS_CHAN_TX2_Q_F1, 0, 1000000, 0.25, phy);
-		dds_default_setup(DDS_CHAN_TX2_Q_F2, 0, 1000000, 0.25, phy);
+		dds_default_setup(DDS_CHAN_TX1_I_F1, 90000, 1000000, 250000, phy);
+		dds_default_setup(DDS_CHAN_TX1_I_F2, 90000, 1000000, 250000, phy);
+		dds_default_setup(DDS_CHAN_TX1_Q_F1, 0, 1000000, 250000, phy);
+		dds_default_setup(DDS_CHAN_TX1_Q_F2, 0, 1000000, 250000, phy);
+		if(phy->dds_st.rx2tx2)
+		{
+			dds_default_setup(DDS_CHAN_TX2_I_F1, 90000, 1000000, 250000, phy);
+			dds_default_setup(DDS_CHAN_TX2_I_F2, 90000, 1000000, 250000, phy);
+			dds_default_setup(DDS_CHAN_TX2_Q_F1, 0, 1000000, 250000, phy);
+			dds_default_setup(DDS_CHAN_TX2_Q_F2, 0, 1000000, 250000, phy);
+		}
 		dac_write(ADI_REG_CNTRL_2, 0, adi_num);
 		dac_datasel(-1, DATA_SEL_DDS, phy);
 		break;
@@ -255,37 +268,62 @@ void dac_init (struct ad9361_rf_phy *phy, uint8_t data_sel)
 		tx_count = sizeof(sine_lut) / sizeof(uint16_t);
  // 	    xil_printf("dac_init: tx_count: %d \r\n", tx_count);
 
-		for (packets=0; packets<num_packets; packets++)
+		if(phy->dds_st.rx2tx2)
 		{
-			for(index = 0; index < (tx_count * 2); index+=2)
+			for (packets=0; packets<num_packets; packets++)
 			{
-				index_i1 = index;
-				index_q1 = index + (tx_count / 4);
-				if(index_q1 >= (tx_count * 2))
-					index_q1 -= (tx_count * 2);
-				data_i1 = (sine_lut[index_i1 / 2] << 20);
-				data_q1 = (sine_lut[index_q1 / 2] << 4);
-				Xil_Out32(DAC_DDR_BASEADDR + packets*(tx_count * 8) + index * 4, data_i1 | data_q1);
+				for(index = 0; index < (tx_count * 2); index+=2)
+				{
+					index_i1 = index;
+					index_q1 = index + (tx_count / 4);
+					if(index_q1 >= (tx_count * 2))
+						index_q1 -= (tx_count * 2);
+					data_i1 = (sine_lut[index_i1 / 2] << 20);
+					data_q1 = (sine_lut[index_q1 / 2] << 4);
+					Xil_Out32(DAC_DDR_BASEADDR + packets*(tx_count * 8) + index * 4, data_i1 | data_q1);
 
-				index_i2 = index_i1 + (tx_count / 2);
-				index_q2 = index_q1 + (tx_count / 2);
-				if(index_i2 >= (tx_count * 2))
-					index_i2 -= (tx_count * 2);
-				if(index_q2 >= (tx_count * 2))
-					index_q2 -= (tx_count * 2);
-				data_i2 = (sine_lut[index_i2 / 2] << 20);
-				data_q2 = (sine_lut[index_q2 / 2] << 4);
-				Xil_Out32(DAC_DDR_BASEADDR + packets*(tx_count * 8) + (index + 1) * 4, data_i2 | data_q2);
+					index_i2 = index_i1 + (tx_count / 2);
+					index_q2 = index_q1 + (tx_count / 2);
+					if(index_i2 >= (tx_count * 2))
+						index_i2 -= (tx_count * 2);
+					if(index_q2 >= (tx_count * 2))
+						index_q2 -= (tx_count * 2);
+					data_i2 = (sine_lut[index_i2 / 2] << 20);
+					data_q2 = (sine_lut[index_q2 / 2] << 4);
+					Xil_Out32(DAC_DDR_BASEADDR + packets*(tx_count * 8) + (index + 1) * 4, data_i2 | data_q2);
+				}
 			}
 		}
-
-		Xil_DCacheFlush();
+		else
+		{
+			for (packets=0; packets<num_packets; packets++)
+			{
+				for(index = 0; index < tx_count; index += 1)
+				{
+					index_i1 = index;
+					index_q1 = index + (tx_count / 4);
+					if(index_q1 >= tx_count)
+						index_q1 -= tx_count;
+					data_i1 = (sine_lut[index_i1] << 20);
+					data_q1 = (sine_lut[index_q1] << 4);
+					Xil_Out32(DAC_DDR_BASEADDR + packets*(tx_count * 4) + index * 4, data_i1 | data_q1);
+				}
+			}
+		}		Xil_DCacheFlush();
+		if(phy->dds_st.rx2tx2)
+		{
+			length = (tx_count * 8);
+		}
+		else
+		{
+			length = (tx_count * 4);
+		}
 		dac_dma_write(AXI_DMAC_REG_CTRL, 0, adi_num);
 		dac_dma_write(AXI_DMAC_REG_CTRL, AXI_DMAC_CTRL_ENABLE, adi_num);
 		dac_dma_write(AXI_DMAC_REG_SRC_ADDRESS, DAC_DDR_BASEADDR, adi_num);
 		dac_dma_write(AXI_DMAC_REG_SRC_STRIDE, 0x0, adi_num);
 
-//		dac_dma_write(AXI_DMAC_REG_X_LENGTH, (tx_count * 8 * num_packets) - 1, adi_num);
+//		dac_dma_write(AXI_DMAC_REG_X_LENGTH, (length * num_packets) - 1, adi_num);
 		dac_dma_write(AXI_DMAC_REG_X_LENGTH, 255, adi_num);
 
 		dac_dma_write(AXI_DMAC_REG_Y_LENGTH, 0x0, adi_num);
@@ -347,7 +385,7 @@ void dds_set_phase(uint32_t chan, uint32_t phase, struct ad9361_rf_phy *phy)
 /***************************************************************************//**
  * @brief dds_set_phase
 *******************************************************************************/
-void dds_set_scale(uint32_t chan, double scale, struct ad9361_rf_phy *phy)
+void dds_set_scale(uint32_t chan, int32_t scale_micro_units, struct ad9361_rf_phy *phy)
 {
 	uint32_t scale_reg;
 	uint32_t sign_part;
@@ -359,51 +397,52 @@ void dds_set_scale(uint32_t chan, double scale, struct ad9361_rf_phy *phy)
 
 	if (PCORE_VERSION_MAJOR(phy->dds_st.pcore_version) > 6)
 	{
-		if(scale >= 1.0)
+		if(scale_micro_units >= 1000000)
 		{
 			sign_part = 0;
 			int_part = 1;
 			fract_part = 0;
-			phy->dds_st.cached_scale[chan] = 1.0;
+			phy->dds_st.cached_scale[chan] = 1000000;
 			goto set_scale_reg;
 		}
-		if(scale <= -1.0)
+		if(scale_micro_units <= -1000000)
 		{
 			sign_part = 1;
 			int_part = 1;
 			fract_part = 0;
-			phy->dds_st.cached_scale[chan] = -1.0;
+			phy->dds_st.cached_scale[chan] = -1000000;
 			goto set_scale_reg;
 		}
-		if(scale < 0)
+		phy->dds_st.cached_scale[chan] = scale_micro_units;
+		if(scale_micro_units < 0)
 		{
 			sign_part = 1;
 			int_part = 0;
-			phy->dds_st.cached_scale[chan] = scale;
-			scale *= -1;
-			goto set_scale_reg;
+			scale_micro_units *= -1;
 		}
-		sign_part = 0;
-		int_part = 0;
-		phy->dds_st.cached_scale[chan] = scale;
-		fract_part = (uint32_t)(scale * 0x4000);
+		else
+		{
+			sign_part = 0;
+			int_part = 0;
+		}
+		fract_part = (uint32_t)(((uint64_t)scale_micro_units * 0x4000) / 1000000);
 	set_scale_reg:
 		scale_reg = (sign_part << 15) | (int_part << 14) | fract_part;
 	}
 	else
 	{
-		if(scale >= 1.0)
+		if(scale_micro_units >= 1000000)
 		{
 			scale_reg = 0;
-			scale = 1.0;
+			scale_micro_units = 1000000;
 		}
-		if(scale <= 0.0)
+		if(scale_micro_units <= 0)
 		{
 			scale_reg = 0;
-			scale = 0.0;
+			scale_micro_units = 0;
 		}
-		phy->dds_st.cached_scale[chan] = scale;
-		fract_part = (uint32_t)(scale * 1000000);
+		phy->dds_st.cached_scale[chan] = scale_micro_units;
+		fract_part = (uint32_t)(scale_micro_units);
 		scale_reg = 500000 / fract_part;
 	}
 	dac_stop(phy);
@@ -463,6 +502,6 @@ int dac_datasel(int32_t chan, enum dds_data_select sel, struct ad9361_rf_phy *ph
 			return -EINVAL;
 		}
 	}
-
+	phy->dds_st.cached_datasel[chan] = sel;
 	return 0;
 }

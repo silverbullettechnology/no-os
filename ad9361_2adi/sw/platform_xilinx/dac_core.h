@@ -169,7 +169,11 @@ struct dds_state
 /******************************************************************************/
 /************************ Functions Declarations ******************************/
 /******************************************************************************/
+void reset_dmatx(uint32_t adi_num);
 void dac_init(struct ad9361_rf_phy *phy, uint8_t data_sel);
+void dac_init_dmac(struct ad9361_rf_phy *phy, uint8_t data_sel);
+void dac_init_axidma(struct ad9361_rf_phy *phy, uint8_t data_sel);
+
 void dac_dma_loop();
 void dds_set_frequency(uint32_t chan, uint32_t freq, struct ad9361_rf_phy *phy);
 void dds_set_phase(uint32_t chan, uint32_t phase, struct ad9361_rf_phy *phy);

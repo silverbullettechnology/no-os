@@ -9,7 +9,10 @@
 #include "rxtest.h"
 #include "ad9361.h"
 
-#define WordsToRx 0x4000   //16384
+
+// for AXI-DMA implementation, number of bytes to receive is limited by width of configurable buffer length register
+// maximum  of 23 bits (about 8MB) per descriptor
+#define WordsToRx 0xc00// 0x4000   //16384
 
 static uint32_t rshift_tx (uint32_t x)
 {
@@ -124,12 +127,16 @@ void txrxtest_main(struct ad9361_rf_phy *phy)
 		//ad9361_spi_write( REG_LVDS_INVERT_CTRL1, 0X10);
 
 		//while(1)
+
+		reset_dmarx(adi_num);
+		reset_dmatx(adi_num);
+
 		dac_init(phy, DATA_SEL_DMA);
 
 		sleep(1);
 
 		//dac_init(DATA_SEL_DDS);
-		adc_capture(WordsToRx*4, ADC_DDR_BASEADDR, adi_num);
+		adc_capture(WordsToRx, ADC_DDR_BASEADDR, adi_num);
 
 //		adc_read(0x0400, &status, adi_num);  xil_printf("REG_CHAN_CNTRL        : %02x \n\r", status);
 //		adc_read(0x0410, &status, adi_num);  xil_printf("REG_CHAN_CNTRL_1      : %02x \n\r", status);
@@ -404,6 +411,9 @@ int get_eye_rx(struct ad9361_rf_phy *phy, u8 *delay_vec)
 					0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 					0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
+	memset((void *)ADC_DDR_BASEADDR, 0x01, WordsToRx*8);
+	Xil_DCacheFlush();
+
 	for (rx_clk_delay = 0x00; rx_clk_delay < 0x10; rx_clk_delay = rx_clk_delay + 1)
 		delay_vec[rx_clk_delay] = 0;
 
@@ -422,6 +432,8 @@ int get_eye_rx(struct ad9361_rf_phy *phy, u8 *delay_vec)
 	for (rx_clk_delay = 0x00; rx_clk_delay < 0x10; rx_clk_delay = rx_clk_delay + 1)
 	{
 		ad9361_spi_write(phy->spi, REG_RX_CLOCK_DATA_DELAY, rx_clk_delay);
+
+		reset_dmarx(adi_num);
 
 		if (adc_capture(WordsToRx, ADC_DDR_BASEADDR, adi_num) == -1)
 		{
@@ -514,6 +526,9 @@ int get_eye_tx(struct ad9361_rf_phy *phy, u8 *delay_vec)
 
 		ad9361_spi_write(phy->spi, REG_TX_CLOCK_DATA_DELAY, tx_clk_delay<<4);
 
+		reset_dmarx(adi_num);
+		reset_dmatx(adi_num);
+
 		dac_init(phy, DATA_SEL_DMA);
 
 //ShowTxData();
@@ -524,7 +539,7 @@ sleep(1);  // wait for tx data to reach rx side
 //adc_capture(WordsToRx*4, ADC_DDR_BASEADDR, adi_num);
 //}
 
-		if (adc_capture(WordsToRx*4, ADC_DDR_BASEADDR, adi_num) == -1)
+		if (adc_capture(WordsToRx, ADC_DDR_BASEADDR, adi_num) == -1)
 		{
 			delay_vec[tx_clk_delay] = 1;
 			continue;

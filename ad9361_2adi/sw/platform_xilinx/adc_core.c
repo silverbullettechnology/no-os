@@ -48,6 +48,10 @@
 #include "parameters.h"
 #include "xtime_l.h"
 
+#ifdef XPAR_AXI_DMA_0_BASEADDR
+	#include "xaxidma_hw.h"
+#endif
+
 /******************************************************************************/
 /************************ Variables Definitions *******************************/
 /******************************************************************************/
@@ -99,37 +103,43 @@ void adc_write(uint32_t regAddr, uint32_t data, uint32_t adi_num)
 	}
 }
 
-/***************************************************************************//**
- * @brief axiadc_read
-*******************************************************************************/
-//uint32_t axiadc_read(uint32_t reg)
-//{
-//	uint32_t val;
-//
-//	adc_read(reg, &val);
-//
-//	return val;
-//}
-//uint32_t axiadc_read(uint32_t reg, uint32_t adi_num)
-//{
-//	uint32_t val;
-//
-//	adc_read(reg, &val, adi_num);
-//
-//	return val;
-//}
 
 /***************************************************************************//**
- * @brief axiadc_write
+ * @brief adc_init
 *******************************************************************************/
-//void axiadc_write(uint32_t reg, uint32_t val)
-//{
-//	adc_write(reg, val);
-//}
-//void axiadc_write(uint32_t reg, uint32_t val, uint32_t adi_num)
-//{
-//	adc_write(reg, val, adi_num);
-//}
+void adc_init(struct ad9361_rf_phy *phy)
+{
+	u8 adi_num;
+	adi_num = phy->pcore_id;
+
+	xil_printf("************ adc_init (%x) *********************\n\r", adi_num);
+
+	xil_printf("************ adc_write(ADI_REG_RSTN, 0) *********************\n\r");
+	adc_write(ADI_REG_RSTN, 0, adi_num);
+	xil_printf("************ ADI_REG_RSTN, ADI_RSTN *********************\n\r");
+	adc_write(ADI_REG_RSTN, ADI_RSTN, adi_num);
+
+	xil_printf("************ adc_write(ADI_REG_CHAN_CNTRL(0) *********************\n\r");
+	adc_write(ADI_REG_CHAN_CNTRL(0),
+		ADI_IQCOR_ENB | ADI_FORMAT_SIGNEXT | ADI_FORMAT_ENABLE | ADI_ENABLE, adi_num);
+	adc_write(ADI_REG_CHAN_CNTRL(1),
+		ADI_IQCOR_ENB | ADI_FORMAT_SIGNEXT | ADI_FORMAT_ENABLE | ADI_ENABLE, adi_num);
+
+	adc_st.rx2tx2 = phy->pdata->rx2tx2;
+	if(adc_st.rx2tx2)
+	{
+		adc_write(ADI_REG_CHAN_CNTRL(2),
+			ADI_IQCOR_ENB | ADI_FORMAT_SIGNEXT | ADI_FORMAT_ENABLE | ADI_ENABLE, adi_num);
+		adc_write(ADI_REG_CHAN_CNTRL(3),
+			ADI_IQCOR_ENB | ADI_FORMAT_SIGNEXT | ADI_FORMAT_ENABLE | ADI_ENABLE, adi_num);
+	}
+	xil_printf("************ EXIT: adc_init(void) *********************\n\r");
+
+}
+
+
+
+#ifdef XPAR_AXI_DMAC_0_BASEADDR
 
 /***************************************************************************//**
  * @brief adc_dma_read
@@ -175,43 +185,11 @@ void adc_dma_write(uint32_t regAddr, uint32_t data, uint32_t adi_num)
 	}
 }
 
-/***************************************************************************//**
- * @brief adc_init
-*******************************************************************************/
-void adc_init(struct ad9361_rf_phy *phy)
-{
-	u8 adi_num;
-	adi_num = phy->pcore_id;
-
-	xil_printf("************ adc_init (%x) *********************\n\r", adi_num);
-
-	xil_printf("************ adc_write(ADI_REG_RSTN, 0) *********************\n\r");
-	adc_write(ADI_REG_RSTN, 0, adi_num);
-	xil_printf("************ ADI_REG_RSTN, ADI_RSTN *********************\n\r");
-	adc_write(ADI_REG_RSTN, ADI_RSTN, adi_num);
-
-	xil_printf("************ adc_write(ADI_REG_CHAN_CNTRL(0) *********************\n\r");
-	adc_write(ADI_REG_CHAN_CNTRL(0),
-		ADI_IQCOR_ENB | ADI_FORMAT_SIGNEXT | ADI_FORMAT_ENABLE | ADI_ENABLE, adi_num);
-	adc_write(ADI_REG_CHAN_CNTRL(1),
-		ADI_IQCOR_ENB | ADI_FORMAT_SIGNEXT | ADI_FORMAT_ENABLE | ADI_ENABLE, adi_num);
-
-	adc_st.rx2tx2 = phy->pdata->rx2tx2;
-	if(adc_st.rx2tx2)
-	{
-		adc_write(ADI_REG_CHAN_CNTRL(2),
-			ADI_IQCOR_ENB | ADI_FORMAT_SIGNEXT | ADI_FORMAT_ENABLE | ADI_ENABLE, adi_num);
-		adc_write(ADI_REG_CHAN_CNTRL(3),
-			ADI_IQCOR_ENB | ADI_FORMAT_SIGNEXT | ADI_FORMAT_ENABLE | ADI_ENABLE, adi_num);
-	}
-	xil_printf("************ EXIT: adc_init(void) *********************\n\r");
-
-}
 
 /***************************************************************************//**
  * @brief adc_capture
 *******************************************************************************/
-int32_t adc_capture(uint32_t size, uint32_t start_address, uint32_t adi_num)
+int32_t adc_capture_dmac(uint32_t size, uint32_t start_address, uint32_t adi_num)
 {
 	uint32_t reg_val;
 	uint32_t transfer_id;
@@ -281,3 +259,165 @@ int32_t adc_capture(uint32_t size, uint32_t start_address, uint32_t adi_num)
 
 	return 0;
 }
+
+#endif
+
+int32_t adc_capture (uint32_t size, uint32_t start_address, uint32_t adi_num)
+{
+#ifdef XPAR_AXI_DMAC_0_BASEADDR
+	return adc_capture_dmac(size, start_address, adi_num);
+#endif
+
+#ifdef XPAR_AXI_DMA_0_BASEADDR
+	return adc_capture_axidma(size, start_address, adi_num);
+#endif
+}
+
+
+
+#ifdef XPAR_AXI_DMA_0_BASEADDR
+
+/***************************************************************************//**
+ * @brief dma_write
+*******************************************************************************/
+void adc_axidma_write(uint32_t regAddr, uint32_t data, uint32_t adi_num)
+{
+	switch (adi_num)
+	{
+	case 0:
+		Xil_Out32(XPAR_AXI_DMA_0_BASEADDR + XAXIDMA_RX_OFFSET + regAddr, data);
+		break;
+	case 1:
+		Xil_Out32(XPAR_AXI_DMA_1_BASEADDR + XAXIDMA_RX_OFFSET + regAddr, data);
+		break;
+	default:
+		Xil_Out32(XPAR_AXI_DMA_0_BASEADDR + XAXIDMA_RX_OFFSET + regAddr, data);
+	}
+}
+
+/***************************************************************************/
+
+void adi2axis_write(uint32_t regAddr, uint32_t data, uint32_t adi_num)
+{
+	switch (adi_num)
+	{
+		case 0:
+			Xil_Out32(XPAR_ADI2AXIS_0_BASEADDR + regAddr, data);
+			break;
+		case 1:
+			Xil_Out32(XPAR_ADI2AXIS_1_BASEADDR + regAddr, data);
+			break;
+		default:
+			Xil_Out32(XPAR_ADI2AXIS_0_BASEADDR + regAddr, data);
+	}
+}
+
+
+
+/***************************************************************************/
+
+void adi2axis_read(uint32_t regAddr, uint32_t *data, uint32_t adi_num)
+{
+	switch (adi_num)
+	{
+		case 0:
+			*data = Xil_In32(XPAR_ADI2AXIS_0_BASEADDR + regAddr);
+			break;
+		case 1:
+			*data = Xil_In32(XPAR_ADI2AXIS_1_BASEADDR + regAddr);
+			break;
+		default:
+			*data = Xil_In32(XPAR_ADI2AXIS_0_BASEADDR + regAddr);
+	}
+}
+
+
+void reset_dmarx(uint32_t adi_num)
+{
+	adc_axidma_write(XAXIDMA_CR_OFFSET, XAXIDMA_CR_RESET_MASK, adi_num); // Reset DMA engine
+	adc_axidma_write(XAXIDMA_CR_OFFSET, 0, adi_num);
+}
+
+/***************************************************************************//**
+ * @brief adc_capture
+*******************************************************************************/
+int32_t adc_capture_axidma(uint32_t size, uint32_t start_address, uint32_t adi_num)
+{
+	uint32_t status;
+	uint32_t ba;
+
+	XTime tEnd, tCur;
+	uint32_t length;
+	if(adc_st.rx2tx2)
+	{
+		length = (size * 8);
+	}
+	else
+	{
+		length = (size * 4);
+	}
+
+	int timeout_sec = 5;
+
+	XTime_GetTime(&tCur);
+	tEnd  = tCur + ((XTime) timeout_sec) * COUNTS_PER_SECOND;
+
+
+	ba = start_address + (size*16);
+	Xil_Out32((ba + 0x000), (ba + 0x40)); // next descriptor
+	Xil_Out32((ba + 0x004), 0x00); // reserved
+	Xil_Out32((ba + 0x008), start_address); // start address
+	Xil_Out32((ba + 0x00c), 0x00); // reserved
+	Xil_Out32((ba + 0x010), 0x00); // reserved
+	Xil_Out32((ba + 0x014), 0x00); // reserved
+	Xil_Out32((ba + 0x018), (size*16)); // no. of bytes
+	Xil_Out32((ba + 0x01c), 0x00); // status
+	Xil_Out32((ba + 0x040), (ba + 0x00)); // next descriptor
+	Xil_Out32((ba + 0x044), 0x00); // reserved
+	Xil_Out32((ba + 0x048), start_address); // start address
+	Xil_Out32((ba + 0x04c), 0x00); // reserved
+	Xil_Out32((ba + 0x050), 0x00); // reserved
+	Xil_Out32((ba + 0x054), 0x00); // reserved
+	Xil_Out32((ba + 0x058), (size*16)); // no. of bytes
+	Xil_Out32((ba + 0x05c), 0x00); // status
+	Xil_DCacheFlush();
+
+//	adc_axidma_write(XAXIDMA_CR_OFFSET, XAXIDMA_CR_RESET_MASK, adi_num); // Reset DMA engine
+//	adc_axidma_write(XAXIDMA_CR_OFFSET, 0, adi_num);
+	adc_axidma_write(XAXIDMA_CDESC_OFFSET, ba, adi_num); // Current descriptor pointer
+	adc_axidma_write(XAXIDMA_CR_OFFSET, XAXIDMA_CR_RUNSTOP_MASK, adi_num); // Start DMA channel
+	adc_axidma_write(XAXIDMA_TDESC_OFFSET, (ba+0x40), adi_num); // Tail descriptor pointer
+
+	adi2axis_write(ADI2AXIS_CTRL_REG, 0, adi_num);
+	//adi2axis_write(ADI_REG_STATUS, ~0, adi_num);
+	//adi2axis_write(ADI_REG_DMA_STATUS, ~0, adi_num);
+	//adi2axis_write(ADI2AXIS_COUNT_REG, (size*16), adi_num);
+	adi2axis_write(ADI2AXIS_COUNT_REG, length, adi_num);
+
+//	adi2axis_read(ADI2AXIS_COUNT_REG, &status, adi_num);
+//	xil_printf("adc_capture: count %x %x\n\r", status, size*16);
+
+	adi2axis_write(ADI2AXIS_CTRL_REG, ADI_DMA_START, adi_num);
+
+	do
+	{
+		adi2axis_read(ADI2AXIS_STAT_REG, &status, adi_num);
+//		xil_printf("adc_capture: stat %x\n\r", status);
+		usleep(1000);
+	    XTime_GetTime(&tCur);
+	    if (tCur > tEnd) return (-1);
+	}
+	while((status & ADI_DMA_UNF) == ADI_DMA_UNF);
+
+	adc_read(ADI2AXIS_STAT_REG, &status, adi_num);
+	if((status & ADI_DMA_OVF) == ADI_DMA_OVF)
+	{
+		xil_printf("adc_capture: overflow occurred\n\r");
+	}
+	Xil_DCacheFlush();
+
+	return 0;
+
+}
+
+#endif

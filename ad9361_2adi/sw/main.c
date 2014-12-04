@@ -79,6 +79,12 @@ char				received_cmd[30] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 										0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 #endif
 
+
+//#define DSNK_BASE       XPAR_DSNK_0_BASEADDR
+//#define DSRC_BASE       XPAR_DSRC_REP_0_BASEADDR
+//#define ADI2AXIS_BASE   XPAR_ADI2AXIS_0_BASEADDR
+
+
 AD9361_InitParam default_init_param = {
 	/* Reference Clock */
 	38400000UL,	//reference_clk_rate
@@ -454,7 +460,6 @@ int main(void)
 	adc_init(ad9361_phy_0);
 	adc_init(ad9361_phy_1);
 
-
 	// Read version and id registers from both adi controllers
 	xil_printf ("9361_ctrl_0 Pcore_num %x:%x \n\r", 0,0); //axiadc_read(ADI_REG_PCORE_VER, 0, ad9361_phy_0), axiadc_read(ADI_REG_PCORE_ID, 0, ad9361_phy_0));
 	xil_printf ("9361_ctrl_1 Pcore_num %x:%x \n\r", 1,1); //axiadc_read(ADI_REG_PCORE_VER, 1, ad9361_phy_1), axiadc_read(ADI_REG_PCORE_ID, 1, ad9361_phy_1));
@@ -489,6 +494,10 @@ int main(void)
 	xil_printf ("Select ADI device to use (0 or 1):\r\n");
 	temp = console_get_num(received_cmd);
 
+//	reset_dsnk(DSNK_BASE);
+//	enable_adi2axis(ADI2AXIS_BASE, 0x100);
+
+
 	if (temp==0) {
 		set_spi_ss(0);
 
@@ -506,7 +515,7 @@ int main(void)
 		while (get_eye_rx (ad9361_phy_0, delay_vec) == 0);
 		set_eye_rx (ad9361_phy_0, delay_vec);
 
-		dac_init(ad9361_phy_0, DATA_SEL_DMA);
+//		reset_dsrc(DSRC_BASE);
 
 		xil_printf ("\n\r");
 		xil_printf (" ***** Calculate 9361_0 TX eye\r\n");
@@ -539,6 +548,7 @@ int main(void)
 		xil_printf (" ***** Calculate 9361_1 RX eye\r\n");
 		ad9361_get_rx_sampling_freq (ad9361_phy_1, (uint32_t*)&temp);
 		xil_printf("9361_1 SAMP CLK RATE: %d \n\r", temp);
+
 		while (get_eye_rx (ad9361_phy_1, delay_vec) == 0);
 		set_eye_rx (ad9361_phy_1, delay_vec);
 

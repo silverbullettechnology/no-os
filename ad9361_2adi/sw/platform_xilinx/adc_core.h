@@ -47,6 +47,12 @@
 /******************************************************************************/
 /********************** Macros and Constants Definitions **********************/
 /******************************************************************************/
+
+/* ADI2AXIS */
+#define ADI2AXIS_CTRL_REG		0x00
+#define ADI2AXIS_COUNT_REG		0x04
+#define ADI2AXIS_STAT_REG		0x08
+
 /* ADC COMMON */
 #define ADI_REG_PCORE_VER		0x0000
 #define ADI_REG_PCORE_ID		0x0004
@@ -167,8 +173,12 @@ struct adc_state
 /******************************************************************************/
 /************************ Functions Declarations ******************************/
 /******************************************************************************/
+
 void adc_init(struct ad9361_rf_phy *phy);
+void reset_dmarx(uint32_t adi_num);
 int32_t adc_capture(uint32_t size, uint32_t start_address, uint32_t adi_num);
+int32_t adc_capture_dmac(uint32_t size, uint32_t start_address, uint32_t adi_num);
+int32_t adc_capture_axidma(uint32_t size, uint32_t start_address, uint32_t adi_num);
 void adc_read(uint32_t regAddr, uint32_t *data, uint32_t adi_num);
 void adc_write(uint32_t regAddr, uint32_t data, uint32_t adi_num);
 

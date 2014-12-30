@@ -43,6 +43,7 @@
 /***************************** Include Files **********************************/
 /******************************************************************************/
 #include "ad9361.h"
+#include "xbasic_types.h"
 
 /******************************************************************************/
 /********************** Macros and Constants Definitions **********************/
@@ -180,5 +181,8 @@ void dds_set_phase(uint32_t chan, uint32_t phase, struct ad9361_rf_phy *phy);
 void dds_set_scale(uint32_t chan, int32_t scale_micro_units, struct ad9361_rf_phy *phy);
 void dds_update(struct ad9361_rf_phy *phy);
 int dac_datasel(int32_t chan, enum dds_data_select sel, struct ad9361_rf_phy *phy);
+
+void dac_gen_sine (struct ad9361_rf_phy *phy, uint8_t data_sel);
+void dac_user_axidma (struct ad9361_rf_phy *phy, u32* data, u32 length);
 
 #endif

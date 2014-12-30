@@ -49,6 +49,7 @@
 #include "ad9361_api.h"
 #include "parameters.h"
 #include "platform.h"
+
 #ifdef CONSOLE_COMMANDS
 #include "command.h"
 #include "console.h"
@@ -61,6 +62,9 @@
 #include "adc_core.h"
 #include "dac_core.h"
 #endif
+
+
+
 
 /******************************************************************************/
 /************************ Variables Definitions *******************************/
@@ -340,6 +344,9 @@ extern XSpiPs			spi_instance;
 int main(void)
 {
 	int temp;
+	int adi_num;
+	struct ad9361_rf_phy *adi_phy;
+
 	uint8_t  delay_vec[16];
 
 #ifdef XILINX_PLATFORM
@@ -366,7 +373,10 @@ int main(void)
 	xil_printf ("FPGA1_CLK_CTRL (%08x): %08x\r\n", 0xf8000180, Xil_In32(0xf8000180));
 	xil_printf ("FPGA2_CLK_CTRL (%08x): %08x\r\n", 0xf8000190, Xil_In32(0xf8000190));
 
-	xil_printf ("Enter to start test:");
+
+
+
+	xil_printf ("Enter to continue:");
 	temp = console_get_num(received_cmd);
 
 	xil_printf("************ TOGGLE LED *********************\n\r");
@@ -464,6 +474,10 @@ int main(void)
 	xil_printf ("9361_ctrl_0 Pcore_num %x:%x \n\r", 0,0); //axiadc_read(ADI_REG_PCORE_VER, 0, ad9361_phy_0), axiadc_read(ADI_REG_PCORE_ID, 0, ad9361_phy_0));
 	xil_printf ("9361_ctrl_1 Pcore_num %x:%x \n\r", 1,1); //axiadc_read(ADI_REG_PCORE_VER, 1, ad9361_phy_1), axiadc_read(ADI_REG_PCORE_ID, 1, ad9361_phy_1));
 
+	reset_vita_modules();
+	pass_vita_modules();
+	set_vita_clk (0xdead2020);
+
 #if defined XILINX_PLATFORM || defined LINUX_PLATFORM
 #ifdef DAC_DMA
 	dac_init( ad9361_phy_0, DATA_SEL_DMA);
@@ -486,7 +500,6 @@ int main(void)
 #endif
 
 
-#ifdef CONSOLE_COMMANDS
 
 	ad9361_get_rx_sampling_freq (ad9361_phy_0, (uint32_t*)&temp);
 	xil_printf("9361_0 SAMP CLK RATE: %d \n\r", temp);
@@ -497,79 +510,70 @@ int main(void)
 //	reset_dsnk(DSNK_BASE);
 //	enable_adi2axis(ADI2AXIS_BASE, 0x100);
 
+	if (temp==0)
+	{
+		adi_num = 0;
+		adi_phy = ad9361_phy_0;
+	}
+	else
+	{
+		adi_num = 1;
+		adi_phy = ad9361_phy_1;
+	}
 
-	if (temp==0) {
-		set_spi_ss(0);
 
-		xil_printf("************ 9361_0_CTRL *********************\n\r");
-		xil_printf ("Enter Data Clock Frequency (in Hz):");
-		temp = console_get_num(received_cmd);
-		xil_printf ("%d\n\r", temp);
-		ad9361_set_tx_sampling_freq (ad9361_phy_0, temp);
+	set_spi_ss(adi_num);
 
-		xil_printf ("\n\r");
-		xil_printf (" ***** Calculate 9361_0 RX eye\r\n");
-		ad9361_get_rx_sampling_freq (ad9361_phy_0, (uint32_t*)&temp);
-		xil_printf("9361_0 SAMP CLK RATE: %d \n\r", temp);
+	xil_printf("************ 9361_%d_CTRL *********************\n\r",adi_num);
+	xil_printf ("Enter Data Clock Frequency (in Hz):");
+	temp = console_get_num(received_cmd);
+	xil_printf ("%d\n\r", temp);
+	ad9361_set_tx_sampling_freq (adi_phy, temp);
 
-		while (get_eye_rx (ad9361_phy_0, delay_vec) == 0);
-		set_eye_rx (ad9361_phy_0, delay_vec);
+	xil_printf ("\n\r");
+	xil_printf (" ***** Calculate 9361_%d RX eye\r\n", adi_num);
+	ad9361_get_rx_sampling_freq (adi_phy, (uint32_t*)&temp);
+	xil_printf("9361_%d SAMP CLK RATE: %d \n\r", adi_num, temp);
+
+	while (get_eye_rx (adi_phy, delay_vec) == 0);
+	set_eye_rx (adi_phy, delay_vec);
 
 //		reset_dsrc(DSRC_BASE);
 
-		xil_printf ("\n\r");
-		xil_printf (" ***** Calculate 9361_0 TX eye\r\n");
-		xil_printf ("Enter to start test:");
-		temp = console_get_num(received_cmd);
+	xil_printf ("\n\r");
+	xil_printf (" ***** Calculate 9361_%d TX eye\r\n", adi_num);
+	xil_printf ("Enter to start test:");
+	temp = console_get_num(received_cmd);
 
 
 //while(1){
-		if (get_eye_tx (ad9361_phy_0, delay_vec))
-			set_eye_tx (ad9361_phy_0, delay_vec);
-		else
-			ad9361_spi_write(ad9361_phy_0->spi, REG_TX_CLOCK_DATA_DELAY, 0x40);
+	if (get_eye_tx (adi_phy, delay_vec))
+		set_eye_tx (adi_phy, delay_vec);
+	else
+		ad9361_spi_write(adi_phy->spi, REG_TX_CLOCK_DATA_DELAY, 0x40);
 //}
 
-		xil_printf ("Enter to start test:");
-		temp = console_get_num(received_cmd);
-		//rxtest_main(ad9361_phy_0);
-		txrxtest_main(ad9361_phy_0);
-	}
-	else {
-		set_spi_ss(1);
+	xil_printf ("Enter to start test:");
+	temp = console_get_num(received_cmd);
 
-		xil_printf("************ 9361_1_CTRL *********************\n\r");
-		xil_printf ("Enter Data Clock Frequency (in Hz):");
-		temp = console_get_num(received_cmd);
-		xil_printf ("%d\n\r", temp);
-		ad9361_set_tx_sampling_freq (ad9361_phy_1, temp);
+	txrxtest_main(adi_phy);
 
-		xil_printf ("\n\r");
-		xil_printf (" ***** Calculate 9361_1 RX eye\r\n");
-		ad9361_get_rx_sampling_freq (ad9361_phy_1, (uint32_t*)&temp);
-		xil_printf("9361_1 SAMP CLK RATE: %d \n\r", temp);
+	xil_printf ("Enter to start vita pack test:");
+	temp = console_get_num(received_cmd);
+	vita_pack_test (adi_num, 0xbeef, 200, 200);
 
-		while (get_eye_rx (ad9361_phy_1, delay_vec) == 0);
-		set_eye_rx (ad9361_phy_1, delay_vec);
 
-		xil_printf ("\n\r");
-		xil_printf (" ***** Calculate 9361_1 TX eye\r\n");
-		if (get_eye_tx (ad9361_phy_1, delay_vec))
-			set_eye_tx (ad9361_phy_1, delay_vec);
-		else
-		{
-			xil_printf ("NO EYE FOUND");
-			ad9361_spi_write(ad9361_phy_1->spi, REG_TX_CLOCK_DATA_DELAY, 0x40);
-		}
-		xil_printf ("Enter to start test:");
-		temp = console_get_num(received_cmd);
-		//rxtest_main(ad9361_phy_1);
-		txrxtest_main(ad9361_phy_1);
-	}
+	xil_printf ("Enter to start vita unpack test:");
+	temp = console_get_num(received_cmd);
+	reset_dmatx(adi_num);
+	pass_vita_modules();
+    vita_unpack_test (adi_num, 0xbeef0000, 100, adi_phy);
 
 
 
 while(1);
+
+#ifdef CONSOLE_COMMANDS
 
 
 	get_help(NULL, 0);

@@ -189,7 +189,7 @@ void adc_dma_write(uint32_t regAddr, uint32_t data, uint32_t adi_num)
 /***************************************************************************//**
  * @brief adc_capture
 *******************************************************************************/
-int32_t adc_capture_dmac(uint32_t size, uint32_t start_address, uint32_t adi_num)
+int32_t adc_capture_dmac(uint32_t size, uint32_t start_address, int timeout, uint32_t adi_num)
 {
 	uint32_t reg_val;
 	uint32_t transfer_id;
@@ -206,7 +206,7 @@ int32_t adc_capture_dmac(uint32_t size, uint32_t start_address, uint32_t adi_num
 		length = (size * 4);
 	}
 
-	int timeout_sec = 2;
+	int timeout_sec = timeout;
 
 	XTime_GetTime(&tCur);
 	tEnd  = tCur + ((XTime) timeout_sec) * COUNTS_PER_SECOND;
@@ -262,14 +262,14 @@ int32_t adc_capture_dmac(uint32_t size, uint32_t start_address, uint32_t adi_num
 
 #endif
 
-int32_t adc_capture (uint32_t size, uint32_t start_address, uint32_t adi_num)
+int32_t adc_capture (uint32_t size, uint32_t start_address, int timeout, uint32_t adi_num)
 {
 #ifdef XPAR_AXI_DMAC_0_BASEADDR
-	return adc_capture_dmac(size, start_address, adi_num);
+	return adc_capture_dmac(size, start_address, timeout, adi_num);
 #endif
 
 #ifdef XPAR_AXI_DMA_0_BASEADDR
-	return adc_capture_axidma(size, start_address, adi_num);
+	return adc_capture_axidma(size, start_address, timeout, adi_num);
 #endif
 }
 
@@ -341,7 +341,7 @@ void reset_dmarx(uint32_t adi_num)
 /***************************************************************************//**
  * @brief adc_capture
 *******************************************************************************/
-int32_t adc_capture_axidma(uint32_t size, uint32_t start_address, uint32_t adi_num)
+int32_t adc_capture_axidma(uint32_t size, uint32_t start_address, int timeout, uint32_t adi_num)
 {
 	uint32_t status;
 	uint32_t ba;
@@ -357,7 +357,7 @@ int32_t adc_capture_axidma(uint32_t size, uint32_t start_address, uint32_t adi_n
 		length = (size * 4);
 	}
 
-	int timeout_sec = 5;
+	int timeout_sec = timeout;
 
 	XTime_GetTime(&tCur);
 	tEnd  = tCur + ((XTime) timeout_sec) * COUNTS_PER_SECOND;
@@ -407,7 +407,7 @@ int32_t adc_capture_axidma(uint32_t size, uint32_t start_address, uint32_t adi_n
 	    XTime_GetTime(&tCur);
 	    if (tCur > tEnd) return (-1);
 	}
-	while((status & ADI_DMA_UNF) == ADI_DMA_UNF);
+	while((status & 0x02) == 0);  // poll done bit in status register
 
 	adc_read(ADI2AXIS_STAT_REG, &status, adi_num);
 	if((status & ADI_DMA_OVF) == ADI_DMA_OVF)

@@ -33,6 +33,10 @@
 #define AXILITE_TEST_SLV_REG3_OFFSET (AXILITE_TEST_USER_SLV_SPACE_OFFSET + 0x0000000C)
 #define AXILITE_TEST_SLV_REG4_OFFSET (AXILITE_TEST_USER_SLV_SPACE_OFFSET + 0x00000010)
 #define AXILITE_TEST_SLV_REG5_OFFSET (AXILITE_TEST_USER_SLV_SPACE_OFFSET + 0x00000014)
+#define AXILITE_TEST_SLV_REG6_OFFSET (AXILITE_TEST_USER_SLV_SPACE_OFFSET + 0x00000018)
+#define AXILITE_TEST_SLV_REG7_OFFSET (AXILITE_TEST_USER_SLV_SPACE_OFFSET + 0x0000001C)
+#define AXILITE_TEST_SLV_REG8_OFFSET (AXILITE_TEST_USER_SLV_SPACE_OFFSET + 0x00000020)
+
 
 /**************************** Type Definitions *****************************/
 
@@ -108,6 +112,13 @@
  	Xil_Out32((BaseAddress) + (AXILITE_TEST_SLV_REG4_OFFSET) + (RegOffset), (Xuint32)(Value))
 #define AXILITE_TEST_mWriteSlaveReg5(BaseAddress, RegOffset, Value) \
  	Xil_Out32((BaseAddress) + (AXILITE_TEST_SLV_REG5_OFFSET) + (RegOffset), (Xuint32)(Value))
+#define AXILITE_TEST_mWriteSlaveReg6(BaseAddress, RegOffset, Value) \
+ 	Xil_Out32((BaseAddress) + (AXILITE_TEST_SLV_REG6_OFFSET) + (RegOffset), (Xuint32)(Value))
+#define AXILITE_TEST_mWriteSlaveReg7(BaseAddress, RegOffset, Value) \
+ 	Xil_Out32((BaseAddress) + (AXILITE_TEST_SLV_REG7_OFFSET) + (RegOffset), (Xuint32)(Value))
+#define AXILITE_TEST_mWriteSlaveReg8(BaseAddress, RegOffset, Value) \
+ 	Xil_Out32((BaseAddress) + (AXILITE_TEST_SLV_REG8_OFFSET) + (RegOffset), (Xuint32)(Value))
+
 
 #define AXILITE_TEST_mReadSlaveReg0(BaseAddress, RegOffset) \
  	Xil_In32((BaseAddress) + (AXILITE_TEST_SLV_REG0_OFFSET) + (RegOffset))
@@ -121,6 +132,12 @@
  	Xil_In32((BaseAddress) + (AXILITE_TEST_SLV_REG4_OFFSET) + (RegOffset))
 #define AXILITE_TEST_mReadSlaveReg5(BaseAddress, RegOffset) \
  	Xil_In32((BaseAddress) + (AXILITE_TEST_SLV_REG5_OFFSET) + (RegOffset))
+#define AXILITE_TEST_mReadSlaveReg6(BaseAddress, RegOffset) \
+ 	Xil_In32((BaseAddress) + (AXILITE_TEST_SLV_REG6_OFFSET) + (RegOffset))
+#define AXILITE_TEST_mReadSlaveReg7(BaseAddress, RegOffset) \
+ 	Xil_In32((BaseAddress) + (AXILITE_TEST_SLV_REG7_OFFSET) + (RegOffset))
+#define AXILITE_TEST_mReadSlaveReg8(BaseAddress, RegOffset) \
+ 	Xil_In32((BaseAddress) + (AXILITE_TEST_SLV_REG8_OFFSET) + (RegOffset))
 
 /************************** Function Prototypes ****************************/
 
@@ -147,7 +164,7 @@
 XStatus AXILITE_TEST_SelfTest(void * baseaddr_p);
 /**
 *  Defines the number of registers available for read and write*/
-#define TEST_AXI_LITE_USER_NUM_REG 5
+#define TEST_AXI_LITE_USER_NUM_REG 8
 
 
 #endif /** AXILITE_TEST_H */

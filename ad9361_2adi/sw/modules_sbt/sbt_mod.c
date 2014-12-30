@@ -7,13 +7,16 @@
 #include "xstatus.h"
 #include "platform.h"
 #include "axilite_test.h"
+#include "parameters.h"
 
+#include "console.h"
+#include "vita_data_pkts.h"
+#include "dac_core.h"
 #include "sbt_mod.h"
 
 
 void reset_dsnk(u32 base_addr)
 {
-	int Status;
 	int read_loop_index;
 
     // INITIALIZE SINK MODULE
@@ -47,7 +50,6 @@ void enable_adi2axis(u32 base_addr, u32 cnt)
 
 void reset_dsrc (u32 base_addr)
 {
-	int Status;
 	int read_loop_index;
 
 	int MAX_PKT_LEN = 0x100;
@@ -96,3 +98,276 @@ void reset_dsrc (u32 base_addr)
 	}
 
 }
+
+void reset_vita_modules()
+{
+	#ifdef XPAR_VITA49_CLK_BASEADDR
+	reset_vita_clk(XPAR_VITA49_CLK_BASEADDR);
+	#endif
+
+	#ifdef XPAR_AXIS_VITA49_PACK_0_BASEADDR
+	reset_vita_pack(XPAR_AXIS_VITA49_PACK_0_BASEADDR);
+	#endif
+	
+	#ifdef XPAR_AXIS_VITA49_UNPACK_0_BASEADDR
+	reset_vita_unpack(XPAR_AXIS_VITA49_UNPACK_0_BASEADDR);
+	#endif
+
+	#ifdef XPAR_VITA49_TRIG_DAC_0_BASEADDR
+	reset_vita_trig(XPAR_VITA49_TRIG_DAC_0_BASEADDR);
+	#endif
+	
+	#ifdef XPAR_VITA49_TRIG_ADC_0_BASEADDR
+	reset_vita_trig(XPAR_VITA49_TRIG_ADC_0_BASEADDR);
+	#endif
+
+	#ifdef XPAR_AXIS_VITA49_PACK_1_BASEADDR
+	reset_vita_pack(XPAR_AXIS_VITA49_PACK_1_BASEADDR);
+	#endif
+
+	#ifdef XPAR_AXIS_VITA49_UNPACK_1_BASEADDR
+	reset_vita_unpack(XPAR_AXIS_VITA49_UNPACK_1_BASEADDR);
+	#endif
+
+	#ifdef XPAR_VITA49_TRIG_DAC_1_BASEADDR
+	reset_vita_trig(XPAR_VITA49_TRIG_DAC_1_BASEADDR);
+	#endif
+
+	#ifdef XPAR_VITA49_TRIG_ADC_1_BASEADDR
+	reset_vita_trig(XPAR_VITA49_TRIG_ADC_1_BASEADDR);
+	#endif
+}	
+
+
+void pass_vita_modules()
+{
+	#ifdef XPAR_AXIS_VITA49_PACK_0_BASEADDR
+	pass_vita_pack(XPAR_AXIS_VITA49_PACK_0_BASEADDR);
+	#endif
+	
+	#ifdef XPAR_AXIS_VITA49_UNPACK_0_BASEADDR
+	pass_vita_unpack(XPAR_AXIS_VITA49_UNPACK_0_BASEADDR);
+	#endif
+
+	#ifdef XPAR_VITA49_TRIG_DAC_0_BASEADDR
+	pass_vita_trig(XPAR_VITA49_TRIG_DAC_0_BASEADDR);
+	#endif
+	
+	#ifdef XPAR_VITA49_TRIG_ADC_0_BASEADDR
+	pass_vita_trig(XPAR_VITA49_TRIG_ADC_0_BASEADDR);
+	#endif	
+
+	#ifdef XPAR_AXIS_VITA49_PACK_1_BASEADDR
+	pass_vita_pack(XPAR_AXIS_VITA49_PACK_1_BASEADDR);
+	#endif
+
+	#ifdef XPAR_AXIS_VITA49_UNPACK_1_BASEADDR
+	pass_vita_unpack(XPAR_AXIS_VITA49_UNPACK_1_BASEADDR);
+	#endif
+
+	#ifdef XPAR_VITA49_TRIG_DAC_1_BASEADDR
+	pass_vita_trig(XPAR_VITA49_TRIG_DAC_1_BASEADDR);
+	#endif
+
+	#ifdef XPAR_VITA49_TRIG_ADC_1_BASEADDR
+	pass_vita_trig(XPAR_VITA49_TRIG_ADC_1_BASEADDR);
+	#endif
+}	
+
+void reset_vita_trig(u32 base_addr)
+{
+    AXILITE_TEST_mWriteSlaveReg0 (base_addr, 0, 0x02);
+    AXILITE_TEST_mWriteSlaveReg0 (base_addr, 0, 0x00);
+}
+
+void reset_vita_pack(u32 base_addr)
+{
+    AXILITE_TEST_mWriteSlaveReg0 (base_addr, 0, 0x02);
+    AXILITE_TEST_mWriteSlaveReg0 (base_addr, 0, 0x00);
+}
+void reset_vita_unpack(u32 base_addr)
+{
+    AXILITE_TEST_mWriteSlaveReg0 (base_addr, 0, 0x02);
+    AXILITE_TEST_mWriteSlaveReg0 (base_addr, 0, 0x00);
+}
+void reset_vita_clk(u32 base_addr)
+{
+    AXILITE_TEST_mWriteSlaveReg0 (base_addr, 0, 0x02);
+    AXILITE_TEST_mWriteSlaveReg0 (base_addr, 0, 0x00);
+}
+
+void enable_vita_trig(u32 base_addr)
+{
+    AXILITE_TEST_mWriteSlaveReg0 (base_addr, 0, 0x01);
+}
+void enable_vita_pack(u32 base_addr)
+{
+    AXILITE_TEST_mWriteSlaveReg0 (base_addr, 0, 0x01);
+}
+void enable_vita_unpack(u32 base_addr)
+{
+    AXILITE_TEST_mWriteSlaveReg0 (base_addr, 0, 0x01);
+}
+void enable_vita_clk(u32 base_addr)
+{
+    AXILITE_TEST_mWriteSlaveReg0 (base_addr, 0, 0x01);
+}
+
+void pass_vita_trig(u32 base_addr)
+{
+    AXILITE_TEST_mWriteSlaveReg0 (base_addr, 0, 0x08);
+}
+void pass_vita_pack(u32 base_addr)
+{
+    AXILITE_TEST_mWriteSlaveReg0 (base_addr, 0, 0x04);
+}
+void pass_vita_unpack(u32 base_addr)
+{
+    AXILITE_TEST_mWriteSlaveReg0 (base_addr, 0, 0x04);
+}
+
+
+void set_vita_trig (u32 base_addr, u32 tsi, u32 tsf_hi, u32 tsf_lo)
+{
+    AXILITE_TEST_mWriteSlaveReg2 (base_addr, 0, tsi);
+    AXILITE_TEST_mWriteSlaveReg3 (base_addr, 0, tsf_hi);
+    AXILITE_TEST_mWriteSlaveReg4 (base_addr, 0, tsf_lo);
+
+    AXILITE_TEST_mWriteSlaveReg0 (base_addr, 0, 0x04); // set trigger
+    AXILITE_TEST_mWriteSlaveReg0 (base_addr, 0, 0x04);
+    AXILITE_TEST_mWriteSlaveReg0 (base_addr, 0, 0x01); // enable module
+}
+
+
+#ifdef XPAR_VITA49_CLK_BASEADDR
+u32 get_vita_clk ()
+{
+	u32 tsi_0, tsf_hi_0, tsf_lo_0;
+	u32 tsi_1, tsf_hi_1, tsf_lo_1;
+	u32 base_addr = XPAR_VITA49_CLK_BASEADDR;
+
+	tsi_0    = AXILITE_TEST_mReadSlaveReg3 (base_addr, 0);
+    tsf_hi_0 = AXILITE_TEST_mReadSlaveReg4 (base_addr, 0);
+    tsf_lo_0 = AXILITE_TEST_mReadSlaveReg5 (base_addr, 0);
+
+    tsi_1    = AXILITE_TEST_mReadSlaveReg6 (base_addr, 0);
+    tsf_hi_1 = AXILITE_TEST_mReadSlaveReg7 (base_addr, 0);
+    tsf_lo_1 = AXILITE_TEST_mReadSlaveReg8 (base_addr, 0);
+
+    xil_printf ("current clk0 time: %x . %x %x\n\r", tsi_0, tsf_hi_0, tsf_lo_0);
+//    xil_printf ("current clk1 time: %x . %x %x\n\r", tsi_1, tsf_hi_1, tsf_lo_1);
+    return (tsi_0);
+}
+
+
+void set_vita_clk (u32 tsi)
+{
+	u32 base_addr = XPAR_VITA49_CLK_BASEADDR;
+
+    AXILITE_TEST_mWriteSlaveReg2 (base_addr, 0, tsi);
+    AXILITE_TEST_mWriteSlaveReg0 (base_addr, 0, 0x04); // set tsi counter
+    AXILITE_TEST_mWriteSlaveReg0 (base_addr, 0, 0x04);
+    AXILITE_TEST_mWriteSlaveReg0 (base_addr, 0, 0x01); // enable module
+
+    get_vita_clk();
+
+    sleep(3);
+    get_vita_clk();
+
+    sleep(3);
+    get_vita_clk();
+}
+
+#endif //XPAR_VITA49_CLK_BASEADDR
+
+
+#ifdef XPAR_AXIS_VITA49_PACK_1_BASEADDR
+void vita_pack_test (u32 adi_num, u32 stream_id, u32 pkt_size, u32 words_to_pack)
+{
+//	int adi_num = 0;
+	int temp;
+	int timeout = 10;
+	int vita_pack_base_addr;
+	int vita_adc_trig_base_addr;
+	int vita_clk_base_addr = XPAR_VITA49_CLK_BASEADDR;
+
+	switch (adi_num)
+	{
+		case 0:
+			vita_pack_base_addr = XPAR_AXIS_VITA49_PACK_0_BASEADDR;
+			vita_adc_trig_base_addr = XPAR_VITA49_TRIG_ADC_0_BASEADDR;
+			break;
+		case 1:
+			vita_pack_base_addr = XPAR_AXIS_VITA49_PACK_1_BASEADDR;
+			vita_adc_trig_base_addr = XPAR_VITA49_TRIG_ADC_1_BASEADDR;
+			break;
+		default:
+			vita_pack_base_addr = XPAR_AXIS_VITA49_PACK_0_BASEADDR;
+			vita_adc_trig_base_addr = XPAR_VITA49_TRIG_ADC_0_BASEADDR;
+	}
+
+	// set trigger to be 10 seconds into the future
+    temp = get_vita_clk(vita_clk_base_addr);
+    set_vita_trig (vita_adc_trig_base_addr, temp + timeout, 0, 0);
+
+    AXILITE_TEST_mWriteSlaveReg2 (vita_pack_base_addr, 0, stream_id);
+    AXILITE_TEST_mWriteSlaveReg3 (vita_pack_base_addr, 0, pkt_size);
+    AXILITE_TEST_mWriteSlaveReg4 (vita_pack_base_addr, 0, words_to_pack);
+    AXILITE_TEST_mWriteSlaveReg0 (vita_pack_base_addr, 0, 0x01);
+
+	if (adc_capture(words_to_pack, ADC_DDR_BASEADDR, timeout*2, adi_num) == -1) {
+		xil_printf("rx dma timeout error\n\r");
+	};
+
+	ShowRxData();
+}
+#endif //XPAR_AXIS_VITA49_PACK_1_BASEADDR
+
+
+
+#ifdef XPAR_AXIS_VITA49_UNPACK_1_BASEADDR
+void vita_unpack_test (u32 adi_num, u32 stream_id, int length, struct ad9361_rf_phy *phy)
+{
+	int  vita_unpack_base_addr;
+	int  vita_dac_trig_base_addr;
+	int  temp;
+	char received_cmd[30] ;
+
+	switch (adi_num)
+	{
+		case 0:
+			vita_unpack_base_addr = XPAR_AXIS_VITA49_UNPACK_0_BASEADDR;
+			vita_dac_trig_base_addr = XPAR_VITA49_TRIG_DAC_0_BASEADDR;
+			break;
+		case 1:
+			vita_unpack_base_addr = XPAR_AXIS_VITA49_UNPACK_1_BASEADDR;
+			vita_dac_trig_base_addr = XPAR_VITA49_TRIG_DAC_1_BASEADDR;
+			break;
+		default:
+			vita_unpack_base_addr = XPAR_AXIS_VITA49_UNPACK_0_BASEADDR;
+			vita_dac_trig_base_addr = XPAR_VITA49_TRIG_DAC_0_BASEADDR;
+	}
+
+	xil_printf("number of 32bit words to transmit: %x \n\r", length);
+
+    AXILITE_TEST_mWriteSlaveReg2 (vita_unpack_base_addr, 0, stream_id);
+    AXILITE_TEST_mWriteSlaveReg3 (vita_unpack_base_addr, 0, length);
+    AXILITE_TEST_mWriteSlaveReg0 (vita_unpack_base_addr, 0, 0x01);
+
+    // transmit VITA packets
+    // use chipscope to verify that VITA headers are correctly removed before data transmission
+    dac_user_axidma (phy, vita_pkt_a, sizeof(vita_pkt_a));
+
+	temp = console_get_num(received_cmd);
+    dac_user_axidma (phy, vita_pkt_b, sizeof(vita_pkt_b));
+
+    temp = console_get_num(received_cmd);
+    dac_user_axidma (phy, vita_pkt_c, sizeof(vita_pkt_c));
+
+    temp = console_get_num(received_cmd);
+    dac_user_axidma (phy, vita_pkt_d, sizeof(vita_pkt_d));
+}
+#endif //XPAR_AXIS_VITA49_UNPACK_1_BASEADDR
+
+
+

@@ -28,6 +28,7 @@ void rxtest_main(struct ad9361_rf_phy *phy)
 	u8 			rx_clk_delay;
 	u8 			adi_num;
 	uint32_t 	rx_data_clk;
+	int 		timeout = 2;
 	char		received_cmd[30] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 									0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 									0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
@@ -55,7 +56,7 @@ while(1){
 		//ad9361_spi_write( REG_LVDS_INVERT_CTRL1, 0X10);
 		xil_printf("%03x RX_CLOCK_DATA_DELAY  : %02x \n\r", REG_RX_CLOCK_DATA_DELAY, ad9361_spi_read (phy->spi, REG_RX_CLOCK_DATA_DELAY));
 
-		if (adc_capture(WordsToRx, ADC_DDR_BASEADDR, adi_num) == -1) {continue;};
+		if (adc_capture(WordsToRx, ADC_DDR_BASEADDR, timeout, adi_num) == -1) {continue;};
 
 		xil_printf("************ RXTEST DONE *********************\n\r");
 		CheckRxData_PRBS();
@@ -97,6 +98,7 @@ void txrxtest_main(struct ad9361_rf_phy *phy)
 	u8 			rx_clk_delay;
 	u8 			tx_clk_delay;
 	u8 			adi_num;
+	int			timeout = 2;
 	int 		errors;
 
 	uint32_t 	rx_data_clk;
@@ -112,8 +114,8 @@ void txrxtest_main(struct ad9361_rf_phy *phy)
 
 //	for (tx_clk_delay = 0; tx_clk_delay < 0x10; tx_clk_delay = tx_clk_delay + 1)
 //	for (tx_clk_delay = 0x10; tx_clk_delay < 0xFF; tx_clk_delay = tx_clk_delay + 0x10)
-	while(1)
-	{
+//	while(1)
+//	{
 		memset((void *)ADC_DDR_BASEADDR, 0xff, WordsToRx*2);
 		Xil_DCacheFlush();
 		//	CheckData();
@@ -136,7 +138,7 @@ void txrxtest_main(struct ad9361_rf_phy *phy)
 		sleep(1);
 
 		//dac_init(DATA_SEL_DDS);
-		adc_capture(WordsToRx, ADC_DDR_BASEADDR, adi_num);
+		adc_capture(WordsToRx, ADC_DDR_BASEADDR, timeout, adi_num);
 
 //		adc_read(0x0400, &status, adi_num);  xil_printf("REG_CHAN_CNTRL        : %02x \n\r", status);
 //		adc_read(0x0410, &status, adi_num);  xil_printf("REG_CHAN_CNTRL_1      : %02x \n\r", status);
@@ -195,7 +197,7 @@ void txrxtest_main(struct ad9361_rf_phy *phy)
 		xil_printf("***********  DONE  *******************\n\r");
 		console_get_command(received_cmd);
 
-	}
+//	}
 
 }
 
@@ -390,8 +392,8 @@ int CheckRxData_DMA(int p)
 		}
 	}
 
-	xil_printf("\r\n ");
-	xil_printf("ERRORS: %d / %d\r\n ", error, BYTES_TO_RX/4);
+//	xil_printf("\r\n ");
+//	xil_printf("ERRORS: %d / %d\r\n ", error, BYTES_TO_RX/4);
 
 	if (error != 0)
 		return error;
@@ -407,6 +409,7 @@ int get_eye_rx(struct ad9361_rf_phy *phy, u8 *delay_vec)
 	u8		adi_num;
 	uint32_t 	rx_data_clk;
 	int     eye_found = 0;
+	int     timeout = 2;
 	char		received_cmd[30] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 					0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 					0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
@@ -435,7 +438,7 @@ int get_eye_rx(struct ad9361_rf_phy *phy, u8 *delay_vec)
 
 		reset_dmarx(adi_num);
 
-		if (adc_capture(WordsToRx, ADC_DDR_BASEADDR, adi_num) == -1)
+		if (adc_capture(WordsToRx, ADC_DDR_BASEADDR, timeout, adi_num) == -1)
 		{
 			delay_vec[rx_clk_delay] = 1;
 			xil_printf ("*  ");
@@ -499,7 +502,7 @@ int get_eye_tx(struct ad9361_rf_phy *phy, u8 *delay_vec)
 	u8 			tx_clk_delay;
 	u8 			adi_num;
 	int 		eye_found = 0;
-
+	int 		timeout = 2;
 	char		received_cmd[30] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 									0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 									0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
@@ -539,7 +542,7 @@ sleep(1);  // wait for tx data to reach rx side
 //adc_capture(WordsToRx*4, ADC_DDR_BASEADDR, adi_num);
 //}
 
-		if (adc_capture(WordsToRx, ADC_DDR_BASEADDR, adi_num) == -1)
+		if (adc_capture(WordsToRx, ADC_DDR_BASEADDR, timeout, adi_num) == -1)
 		{
 			delay_vec[tx_clk_delay] = 1;
 			continue;
@@ -549,7 +552,7 @@ sleep(1);  // wait for tx data to reach rx side
 //ShowRxData();
 //continue;
 
-		if (CheckRxData_DMA(1) != 0)
+		if (CheckRxData_DMA(0) != 0)
 		{
 			delay_vec[tx_clk_delay] = 1;
 		}

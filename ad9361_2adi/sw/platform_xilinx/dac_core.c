@@ -785,14 +785,14 @@ void dac_user_axidma (struct ad9361_rf_phy *phy, u32* data, u32 length)
 	for (index = 0; index < tx_count; index++) {
 		Xil_Out32(DAC_DDR_BASEADDR +  index * 4, data[index]);
 		Xil_DCacheFlush();
-		xil_printf ("mem[%x]: %x, %x  \n\r", index, data[index], DAC_DDR_BASEADDR +  index * 4);
+//		xil_printf ("mem[%x]: %x, %x  \n\r", index, data[index], DAC_DDR_BASEADDR +  index * 4);
 	}
 
 		// ----------------------------------------------------------------------
 		// AXI_DMA
 
 		ba = DAC_DDR_BASEADDR + 0x100;   // must be 16-word aligned (0x00, 0x40, 0x80, etc)
-		xil_printf ("ba[%x] \n\r", ba);
+//		xil_printf ("ba[%x] \n\r", ba);
 
 		Xil_Out32((ba + 0x000), (ba)); // next descriptor
 		Xil_Out32((ba + 0x004), 0x00); // reserved

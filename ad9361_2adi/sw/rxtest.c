@@ -56,7 +56,7 @@ while(1){
 		//ad9361_spi_write( REG_LVDS_INVERT_CTRL1, 0X10);
 		xil_printf("%03x RX_CLOCK_DATA_DELAY  : %02x \n\r", REG_RX_CLOCK_DATA_DELAY, ad9361_spi_read (phy->spi, REG_RX_CLOCK_DATA_DELAY));
 
-		if (adc_capture(WordsToRx, ADC_DDR_BASEADDR, timeout, adi_num) == -1) {continue;};
+		if (adc_capture(WordsToRx, ADC_DDR_BASEADDR, timeout, adi_num, 0) == -1) {continue;};
 
 		xil_printf("************ RXTEST DONE *********************\n\r");
 		CheckRxData_PRBS();
@@ -138,7 +138,7 @@ void txrxtest_main(struct ad9361_rf_phy *phy)
 		sleep(1);
 
 		//dac_init(DATA_SEL_DDS);
-		adc_capture(WordsToRx, ADC_DDR_BASEADDR, timeout, adi_num);
+		adc_capture(WordsToRx, ADC_DDR_BASEADDR, timeout, adi_num, 0);
 
 //		adc_read(0x0400, &status, adi_num);  xil_printf("REG_CHAN_CNTRL        : %02x \n\r", status);
 //		adc_read(0x0410, &status, adi_num);  xil_printf("REG_CHAN_CNTRL_1      : %02x \n\r", status);
@@ -438,7 +438,7 @@ int get_eye_rx(struct ad9361_rf_phy *phy, u8 *delay_vec)
 
 		reset_dmarx(adi_num);
 
-		if (adc_capture(WordsToRx, ADC_DDR_BASEADDR, timeout, adi_num) == -1)
+		if (adc_capture(WordsToRx, ADC_DDR_BASEADDR, timeout, adi_num, 0) == -1)
 		{
 			delay_vec[rx_clk_delay] = 1;
 			xil_printf ("*  ");
@@ -542,7 +542,7 @@ sleep(1);  // wait for tx data to reach rx side
 //adc_capture(WordsToRx*4, ADC_DDR_BASEADDR, adi_num);
 //}
 
-		if (adc_capture(WordsToRx, ADC_DDR_BASEADDR, timeout, adi_num) == -1)
+		if (adc_capture(WordsToRx, ADC_DDR_BASEADDR, timeout, adi_num, 0) == -1)
 		{
 			delay_vec[tx_clk_delay] = 1;
 			continue;

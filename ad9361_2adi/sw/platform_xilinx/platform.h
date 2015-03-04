@@ -133,6 +133,7 @@ void gpio_init(uint32_t device_id);
 void gpio_direction(uint8_t pin, uint8_t direction);
 bool gpio_is_valid(int number);
 void gpio_set_value(unsigned gpio, int value);
+void gpio_data(uint8_t pin, uint8_t data);
 void udelay(unsigned long usecs);
 void mdelay(unsigned long msecs);
 unsigned long msleep_interruptible(unsigned int msecs);

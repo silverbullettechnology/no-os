@@ -49,6 +49,7 @@
 #include "ad9361_api.h"
 #include "parameters.h"
 #include "platform.h"
+#include "sleep.h"
 
 #ifdef CONSOLE_COMMANDS
 #include "command.h"
@@ -63,8 +64,8 @@
 #include "dac_core.h"
 #endif
 
-
-
+#include "sbt_mod.h"
+#include "rxtest.h"
 
 /******************************************************************************/
 /************************ Variables Definitions *******************************/
@@ -476,7 +477,7 @@ int main(void)
 
 	reset_vita_modules();
 	pass_vita_modules();
-	set_vita_clk (0xdead2020);
+	set_vita_clk (0x0abe2020);
 
 #if defined XILINX_PLATFORM || defined LINUX_PLATFORM
 #ifdef DAC_DMA
@@ -558,17 +559,37 @@ int main(void)
 
 	txrxtest_main(adi_phy);
 
-	xil_printf ("Enter to start vita pack test:");
+	xil_printf ("Enter to start vita pack test (legacy):");
 	temp = console_get_num(received_cmd);
-	vita_pack_test (adi_num, 0xbeef, 200, 200);
+	reset_dmarx(adi_num);
+	reset_dmatx(adi_num);
+	dac_init(adi_phy, DATA_SEL_DMA);
+	vita_pack_test_legacy (adi_num, 0xbeef, 200, 200);
 
+	temp = console_get_num(received_cmd);
+
+	xil_printf ("Enter to start vita pack test (trig large vita packet):");
+	temp = console_get_num(received_cmd);
+	reset_dmarx(adi_num);
+	reset_dmatx(adi_num);
+	dac_init(adi_phy, DATA_SEL_DMA);
+	vita_pack_test_trig (adi_num, 0xbeef, 200, 400);
+
+	xil_printf ("Enter to start vita pack test (trig small vita packet):");
+	temp = console_get_num(received_cmd);
+	reset_dmarx(adi_num);
+	reset_dmatx(adi_num);
+	dac_init(adi_phy, DATA_SEL_DMA);
+	vita_pack_test_trig (adi_num, 0xbeef, 50, 400);
 
 	xil_printf ("Enter to start vita unpack test:");
 	temp = console_get_num(received_cmd);
 	reset_dmatx(adi_num);
 	pass_vita_modules();
-    vita_unpack_test (adi_num, 0xbeef0000, 100, adi_phy);
+    vita_unpack_test (adi_num, 0xfacebeef, 100, adi_phy);
 
+	xil_printf("   \n\r");
+	xil_printf("************ TEST COMPLETE *********************\n\r");
 
 
 while(1);

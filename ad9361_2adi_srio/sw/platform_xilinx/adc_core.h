@@ -176,9 +176,9 @@ struct adc_state
 
 void adc_init(struct ad9361_rf_phy *phy);
 void reset_dmarx(uint32_t adi_num);
-int32_t adc_capture(uint32_t size, uint32_t start_address, int timeout, uint32_t adi_num);
+int32_t adc_capture(uint32_t size, uint32_t start_address, int timeout, uint32_t adi_num, int adi2axis_mode);
 int32_t adc_capture_dmac(uint32_t size, uint32_t start_address, int timeout, uint32_t adi_num);
-int32_t adc_capture_axidma(uint32_t size, uint32_t start_address, int timeout, uint32_t adi_num);
+int32_t adc_capture_axidma(uint32_t size, uint32_t start_address, int timeout, uint32_t adi_num, int adi2axis_mode);
 void adc_read(uint32_t regAddr, uint32_t *data, uint32_t adi_num);
 void adc_write(uint32_t regAddr, uint32_t data, uint32_t adi_num);
 

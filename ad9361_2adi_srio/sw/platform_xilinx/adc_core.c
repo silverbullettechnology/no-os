@@ -262,14 +262,14 @@ int32_t adc_capture_dmac(uint32_t size, uint32_t start_address, int timeout, uin
 
 #endif
 
-int32_t adc_capture (uint32_t size, uint32_t start_address, int timeout, uint32_t adi_num)
+int32_t adc_capture (uint32_t size, uint32_t start_address, int timeout, uint32_t adi_num, int adi2axis_mode)
 {
 #ifdef XPAR_AXI_DMAC_0_BASEADDR
 	return adc_capture_dmac(size, start_address, timeout, adi_num);
 #endif
 
 #ifdef XPAR_AXI_DMA_0_BASEADDR
-	return adc_capture_axidma(size, start_address, timeout, adi_num);
+	return adc_capture_axidma(size, start_address, timeout, adi_num, adi2axis_mode);
 #endif
 }
 
@@ -341,7 +341,10 @@ void reset_dmarx(uint32_t adi_num)
 /***************************************************************************//**
  * @brief adc_capture
 *******************************************************************************/
-int32_t adc_capture_axidma(uint32_t size, uint32_t start_address, int timeout, uint32_t adi_num)
+
+// adi2axis_mode : 0 legacy - adi2axis block controls number of words to pass
+//                 1 trig   - vita49_trig block controls when to start and stop data transfer (done bit not used)
+int32_t adc_capture_axidma(uint32_t size, uint32_t start_address, int timeout, uint32_t adi_num, int adi2axis_mode)
 {
 	uint32_t status;
 	uint32_t ba;
@@ -388,28 +391,31 @@ int32_t adc_capture_axidma(uint32_t size, uint32_t start_address, int timeout, u
 	adc_axidma_write(XAXIDMA_CR_OFFSET, XAXIDMA_CR_RUNSTOP_MASK, adi_num); // Start DMA channel
 	adc_axidma_write(XAXIDMA_TDESC_OFFSET, (ba+0x40), adi_num); // Tail descriptor pointer
 
+
 	adi2axis_write(ADI2AXIS_CTRL_REG, 0, adi_num);
-	//adi2axis_write(ADI_REG_STATUS, ~0, adi_num);
-	//adi2axis_write(ADI_REG_DMA_STATUS, ~0, adi_num);
-	//adi2axis_write(ADI2AXIS_COUNT_REG, (size*16), adi_num);
-	adi2axis_write(ADI2AXIS_COUNT_REG, length, adi_num);
+	// legacy adi2axis mode
+	if (adi2axis_mode == 0x0){
+		adi2axis_write(ADI2AXIS_COUNT_REG, length, adi_num);
+		adi2axis_write(ADI2AXIS_CTRL_REG, 0x1, adi_num);   // start adi2axis block in legacy mode
 
-//	adi2axis_read(ADI2AXIS_COUNT_REG, &status, adi_num);
-//	xil_printf("adc_capture: count %x %x\n\r", status, size*16);
-
-	adi2axis_write(ADI2AXIS_CTRL_REG, ADI_DMA_START, adi_num);
-
-	do
-	{
-		adi2axis_read(ADI2AXIS_STAT_REG, &status, adi_num);
-//		xil_printf("adc_capture: stat %x\n\r", status);
-		usleep(1000);
-	    XTime_GetTime(&tCur);
-	    if (tCur > tEnd) return (-1);
+		do
+		{
+			adi2axis_read(ADI2AXIS_STAT_REG, &status, adi_num);
+	//		xil_printf("adc_capture: stat %x\n\r", status);
+			usleep(1000);
+			XTime_GetTime(&tCur);
+			if (tCur > tEnd) return (-1);
+		}
+		while((status & 0x02) == 0);  // poll done bit in status register
 	}
-	while((status & 0x02) == 0);  // poll done bit in status register
 
-	adi2axis_read(ADI2AXIS_STAT_REG, &status, adi_num);
+	if (adi2axis_mode == 0x1){
+		adi2axis_write(ADI2AXIS_COUNT_REG, length, adi_num);
+		adi2axis_write(ADI2AXIS_CTRL_REG, 0x2, adi_num);     // start axi2axis block in trigger mode
+	}
+
+
+	adc_read(ADI2AXIS_STAT_REG, &status, adi_num);
 	if((status & ADI_DMA_OVF) == ADI_DMA_OVF)
 	{
 		xil_printf("adc_capture: overflow occurred\n\r");

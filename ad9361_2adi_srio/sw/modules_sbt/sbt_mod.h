@@ -38,13 +38,14 @@ void enable_vita_assem (u32 base_addr);
 void pass_vita_assem (u32 base_addr);
 u32 get_vita_assem_err (int adinum);
 
-
-void set_vita_trig (u32 base_addr, u32 tsi, u32 tsf_hi, u32 tsf_lo);
+void set_vita_trig_on (u32 base_addr, u32 tsi, u32 tsf_hi, u32 tsf_lo);
+void set_vita_trig_off (u32 base_addr, u32 tsi, u32 tsf_hi, u32 tsf_lo);
 void set_vita_clk (u32 tsi);
 u32 get_vita_clk ();
 
 
-void vita_pack_test   (u32 adi_num, u32 stream_id, u32 pkt_size, u32 words_to_pack);
+void vita_pack_test_legacy   (u32 adi_num, u32 stream_id, u32 pkt_size, u32 words_to_pack);
+void vita_pack_test_trig   (u32 adi_num, u32 stream_id, u32 pkt_size, u32 words_to_pack);
 void vita_unpack_test (u32 adi_num, u32 stream_id, int length, struct ad9361_rf_phy *phy);
 void vita_endtoend_test (u32 adi_num, u32 srio_addr, u32 stream_id, u32 pkt_size, u32 words_to_pack, struct ad9361_rf_phy *phy);
 

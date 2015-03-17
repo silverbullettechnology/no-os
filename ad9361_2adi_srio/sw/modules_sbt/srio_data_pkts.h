@@ -8,6 +8,7 @@
 // SRIO SWRITE addresses should be 64-bit aligned (i.e. last 3 bits are 0)
 
 u32 swrite_pkt1 [] = {
+	0x000000bb,
 	0x0000dea8, 0x00600000,    // SRIO address: 0xdea8
 	0x10000008, 0xbeef0000,    // VITA IF Packet, size:8, streamID:0xbeef000
 	0xdadada01, 0xefefef02,    // payload: 6 words
@@ -16,6 +17,7 @@ u32 swrite_pkt1 [] = {
 };
 
 u32 swrite_pkt2 [] = {
+	0x0000beef,
 	0xbeef0120, 0x00600000,    // SRIO address: 0xbeef0120
 	0x10000007, 0xbeef0000,    // VITA IF Packet, size:7, streamID:0xbeef000
 	0x01010101, 0x02020202,    // payload: 5 words
@@ -25,6 +27,7 @@ u32 swrite_pkt2 [] = {
 
 // single vita packet is separated into two srio swrite packets
 u32 swrite_pkt3a [] = {
+	0x00000064,
 	0x0000dea8, 0x00600000,    // SRIO address: 0xdea8
 	0x10000008, 0xbeef0000,    // VITA IF Packet, size:8, streamID:0xbeef000
 	0xdadada01, 0xefefef02,    // payload: 4 words
@@ -33,17 +36,20 @@ u32 swrite_pkt3a [] = {
 
 
 u32 swrite_pkt3b [] = {
+	0x000000ea,
 	0x0000dea8, 0x00600000,    // SRIO address: 0xdea8
 	0x05050505, 0x06060606	   // remainder payload: 2 words
 };
 
 u32 swrite_pkt4 [] = {
+	0x00000018,
 	0xb0000600, 0x016020fa,   // SRIO address: 0xb0000600
 	0x02020202, 0x02020202,   // no vita packet
 	0x03030303, 0x03030303
 };
 
 u32 swrite_pkt5 [] = {
+	0x00000054,
 	0x0000dea8, 0x00600000,    // SRIO address: 0xdea8
 	0x04040404, 0x04040404,    // no vita packet
 	0x05050505, 0x05050505,
@@ -81,6 +87,7 @@ u32 swrite_pkt5 [] = {
 
 
 u32 msg_pkt1 [] = {
+	0x000000fa,
 	0x00000000, 0x22b02ff0, //msglen=2, msgseg=2, prio=1, size=256, mailbox=0, ltr=0
 	0x04040404, 0x04040404,
 	0x05050505, 0x05050505,
@@ -117,11 +124,13 @@ u32 msg_pkt1 [] = {
 };
 
 u32 msg_pkt2 [] = {
+	0x00000077,
 	0x000000a1, 0x11b02070,  //msglen=1, msgseg=1, prio=1, size=8, mailbox=a, ltr=1
 	0x15151515, 0x15151515
 };
 
 u32 msg_pkt3 [] = {
+	0x000000c4,
 	0x000000a1, 0x00b020f0,  //msglen=0, msgseg=0, prio=1, size=16, mailbox=a, ltr=1
 	0x15151515, 0x15151515,
 	0xbeefbeef, 0xdeaddead
@@ -130,6 +139,7 @@ u32 msg_pkt3 [] = {
 
 //response packet with data
 u32 resp_pkt1 [] = {
+	0x000000be,
 	0x00000000, 0x22d02000, //targetid=22, prio=1, 
 	0x04040404, 0x04040404,
 	0x05050505, 0x05050505,
@@ -167,11 +177,13 @@ u32 resp_pkt1 [] = {
 
 // response packet without data
 u32 resp_pkt2 [] = {
+	0x000000a1,
 	0x00000000, 0x11d82008  //targetid=11, prio=1,, err=1
 };
 
 // message response packet
 u32 resp_pkt3 [] = {
+	0x00000099,
 	0x00000000, 0x00d12000  //targetid=0, prio=1 
 };
 

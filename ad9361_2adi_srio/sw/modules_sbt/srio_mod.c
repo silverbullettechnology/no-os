@@ -324,7 +324,7 @@ int swrite_tozynq_test()
     xil_printf("\n\r--- swrite_pkt1 ---\n\r");
 	xil_printf("TxSend\n\r");
 	/* Transmit the Data Stream */
-	Status = TxSend(&Fifo_Initiator, swrite_pkt1, 10);
+	Status = TxSend(&Fifo_Initiator, swrite_pkt1, 11);
 	if (Status != XST_SUCCESS){
 		xil_printf("Transmisson of Data failed\n\r");
 		return XST_FAILURE;
@@ -332,57 +332,57 @@ int swrite_tozynq_test()
 	xil_printf("TxSend: Success\r\n");
 
 	Status = RxReceive(&Fifo_Target, TReqBuffer);
-	CheckData( swrite_pkt1, TReqBuffer, 10);
+	CheckData( swrite_pkt1, TReqBuffer, 11);
 
     xil_printf("\n\r--- swrite_pkt2 ---\n\r");
 	xil_printf("TxSend\n\r");
 	/* Transmit the Data Stream */
-	Status = TxSend(&Fifo_Initiator, swrite_pkt2, 9);
+	Status = TxSend(&Fifo_Initiator, swrite_pkt2, 10);
 	if (Status != XST_SUCCESS){
 		xil_printf("Transmisson of Data failed\n\r");
 		return XST_FAILURE;
 	}
 	xil_printf("TxSend: Success\r\n");
 	Status = RxReceive(&Fifo_Target, TReqBuffer);
-	CheckData( swrite_pkt2, TReqBuffer, 9);
+	CheckData( swrite_pkt2, TReqBuffer, 10);
 
 
     xil_printf("\n\r--- swrite_pkt3a ---\n\r");
 	xil_printf("TxSend\n\r");
 	/* Transmit the Data Stream */
-	Status = TxSend(&Fifo_Initiator, swrite_pkt3a, 8);
+	Status = TxSend(&Fifo_Initiator, swrite_pkt3a, 9);
 	if (Status != XST_SUCCESS){
 		xil_printf("Transmisson of Data failed\n\r");
 		return XST_FAILURE;
 	}
 	xil_printf("TxSend: Success\r\n");
 	Status = RxReceive(&Fifo_Target, TReqBuffer);
-	CheckData( swrite_pkt3a, TReqBuffer, 8);
+	CheckData( swrite_pkt3a, TReqBuffer, 9);
 
     xil_printf("\n\r--- swrite_pkt3b ---\n\r");
 	xil_printf("TxSend\n\r");
 	/* Transmit the Data Stream */
-	Status = TxSend(&Fifo_Initiator, swrite_pkt3b, 4);
+	Status = TxSend(&Fifo_Initiator, swrite_pkt3b, 5);
 	if (Status != XST_SUCCESS){
 		xil_printf("Transmisson of Data failed\n\r");
 		return XST_FAILURE;
 	}
 	xil_printf("TxSend: Success\r\n");
 	Status = RxReceive(&Fifo_Target, TReqBuffer);
-	CheckData( swrite_pkt3b, TReqBuffer, 4);
+	CheckData( swrite_pkt3b, TReqBuffer, 5);
 
 
     xil_printf("\n\r--- swrite_pkt4 ---\n\r");
 	xil_printf("TxSend\n\r");
 	/* Transmit the Data Stream */
-	Status = TxSend(&Fifo_Initiator, swrite_pkt4, 6);
+	Status = TxSend(&Fifo_Initiator, swrite_pkt4, 7);
 	if (Status != XST_SUCCESS){
 		xil_printf("Transmisson of Data failed\n\r");
 		return XST_FAILURE;
 	}
 	xil_printf("TxSend: Success\r\n");
 	Status = RxReceive(&Fifo_Target, TReqBuffer);
-	CheckData( swrite_pkt4, TReqBuffer, 6);
+	CheckData( swrite_pkt4, TReqBuffer, 7);
 
 	getchar();
 
@@ -490,12 +490,12 @@ int msg_test()
 	int Status;
     int temp;
 
-	AXILITE_TEST_mWriteSlaveReg0 (XPAR_SYS_REG_0_BASEADDR, SRIO_IREQ_SRCDEST_REG, 0x98765432);
+//	AXILITE_TEST_mWriteSlaveReg0 (XPAR_SYS_REG_0_BASEADDR, SRIO_IREQ_SRCDEST_REG, 0x98765432);
 
     xil_printf("\n\r--- msg_pkt1 ---\n\r");
 	xil_printf("TxSend\n\r");
 	/* Transmit the Data Stream */
-	Status = TxSend(&Fifo_Initiator, msg_pkt1, 66);
+	Status = TxSend(&Fifo_Initiator, msg_pkt1, 67);
 	if (Status != XST_SUCCESS){
 		xil_printf("Transmisson of Data failed\n\r");
 		return XST_FAILURE;
@@ -509,13 +509,13 @@ int msg_test()
 //		xil_printf("Receiving data failed");
 //		return XST_FAILURE;
 //	}
-	CheckData( msg_pkt1, TReqBuffer, 66);
+	CheckData( msg_pkt1, TReqBuffer, 67);
 
 
     xil_printf("\n\r--- msg_pkt2 ---\n\r");
 	xil_printf("TxSend\n\r");
 	/* Transmit the Data Stream */
-	Status = TxSend(&Fifo_Initiator, msg_pkt2, 4);
+	Status = TxSend(&Fifo_Initiator, msg_pkt2, 5);
 	if (Status != XST_SUCCESS){
 		xil_printf("Transmisson of Data failed\n\r");
 		return XST_FAILURE;
@@ -528,13 +528,13 @@ int msg_test()
 		xil_printf("Receiving data failed");
 		return XST_FAILURE;
 	}
-	CheckData( msg_pkt2, TReqBuffer, 4);
+	CheckData( msg_pkt2, TReqBuffer, 5);
 
 
     xil_printf("\n\r--- msg_pkt3 ---\n\r");
 	xil_printf("TxSend\n\r");
 	/* Transmit the Data Stream */
-	Status = TxSend(&Fifo_Initiator, msg_pkt3, 6);
+	Status = TxSend(&Fifo_Initiator, msg_pkt3, 7);
 	if (Status != XST_SUCCESS){
 		xil_printf("Transmisson of Data failed\n\r");
 		return XST_FAILURE;
@@ -547,10 +547,10 @@ int msg_test()
 		xil_printf("Receiving data failed");
 		return XST_FAILURE;
 	}
-	CheckData( msg_pkt3, TReqBuffer, 6);
+	CheckData( msg_pkt3, TReqBuffer, 7);
 
-	temp    = AXILITE_TEST_mReadSlaveReg0 (XPAR_SYS_REG_0_BASEADDR, SRIO_TREQ_SRCDEST_REG);
-    xil_printf("\n RECEIVED TUSER: %x\n\r", temp);
+//	temp    = AXILITE_TEST_mReadSlaveReg0 (XPAR_SYS_REG_0_BASEADDR, SRIO_TREQ_SRCDEST_REG);
+//  xil_printf("\n RECEIVED TUSER: %x\n\r", temp);
 
 	getchar();
 }
@@ -563,7 +563,7 @@ int resp_test()
     xil_printf("\n\r--- resp_pkt1 ---\n\r");
 	xil_printf("TxSend\n\r");
 	/* Transmit the Data Stream */
-	Status = TxSend(&Fifo_Target, resp_pkt1, 66);
+	Status = TxSend(&Fifo_Target, resp_pkt1, 67);
 	if (Status != XST_SUCCESS){
 		xil_printf("Transmisson of Data failed\n\r");
 		return XST_FAILURE;
@@ -577,13 +577,13 @@ int resp_test()
 //		xil_printf("Receiving data failed");
 //		return XST_FAILURE;
 //	}
-	CheckData(resp_pkt1, TReqBuffer, 66);
+	CheckData(resp_pkt1, TReqBuffer, 67);
 
 
     xil_printf("\n\r--- resp_pkt2 ---\n\r");
 	xil_printf("TxSend\n\r");
 	/* Transmit the Data Stream */
-	Status = TxSend(&Fifo_Target, resp_pkt2, 2);
+	Status = TxSend(&Fifo_Target, resp_pkt2, 3);
 	if (Status != XST_SUCCESS){
 		xil_printf("Transmisson of Data failed\n\r");
 		return XST_FAILURE;
@@ -596,13 +596,13 @@ int resp_test()
 		xil_printf("Receiving data failed");
 		return XST_FAILURE;
 	}
-	CheckData( resp_pkt2, TReqBuffer, 2);
+	CheckData( resp_pkt2, TReqBuffer, 3);
 
 
     xil_printf("\n\r--- resp_pkt3 ---\n\r");
 	xil_printf("TxSend\n\r");
 	/* Transmit the Data Stream */
-	Status = TxSend(&Fifo_Target, resp_pkt3, 2);
+	Status = TxSend(&Fifo_Target, resp_pkt3, 3);
 	if (Status != XST_SUCCESS){
 		xil_printf("Transmisson of Data failed\n\r");
 		return XST_FAILURE;
@@ -615,7 +615,7 @@ int resp_test()
 		xil_printf("Receiving data failed");
 		return XST_FAILURE;
 	}
-	CheckData(resp_pkt3, TReqBuffer, 2);
+	CheckData(resp_pkt3, TReqBuffer, 3);
 
 	getchar();
 }

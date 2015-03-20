@@ -402,7 +402,8 @@ int swrite_toadi_test()
 	enable_swrite_unpack();
 
 	set_swrite_addr (0, 1, 0x0000dea8);
-	set_swrite_addr (1, 1, 0x00000000); // set_swrite_addr (1, 1, 0xbeef0120);
+	//set_swrite_addr (1, 1, 0x00000000);
+	set_swrite_addr (1, 1, 0xbeef0120);
 
 	enable_vita_assem (XPAR_VITA49_ASSEM_0_BASEADDR);
 
@@ -410,7 +411,7 @@ int swrite_toadi_test()
 	getchar();
 	xil_printf("TxSend\n\r");
 	/* Transmit the Data Stream */
-	Status = TxSend(&Fifo_Initiator, swrite_pkt1, 10);
+	Status = TxSend(&Fifo_Initiator, swrite_pkt1, 11);
 	if (Status != XST_SUCCESS){
 		xil_printf("Transmisson of Data failed\n\r");
 		return XST_FAILURE;
@@ -419,23 +420,25 @@ int swrite_toadi_test()
 	xil_printf("TxSend: Success\r\n");
 
 
-//  xil_printf("\n\r--- swrite_pkt2 ---\n\r");
-//	getchar();
-//	xil_printf("TxSend\n\r");
-//	/* Transmit the Data Stream */
-//	Status = TxSend(&Fifo_Initiator, swrite_pkt2, 9);
-//	if (Status != XST_SUCCESS){
-//		xil_printf("Transmisson of Data failed\n\r");
-//		return XST_FAILURE;
-//	}
-//	xil_printf("TxSend: Success\r\n");
+    xil_printf("\n\r--- swrite_pkt5 ---\n\r");
+	getchar();
+	xil_printf("TxSend\n\r");
+	/* Transmit the Data Stream */
+	Status = TxSend(&Fifo_Initiator, swrite_pkt5, 67);
+	if (Status != XST_SUCCESS){
+		xil_printf("Transmisson of Data failed\n\r");
+		return XST_FAILURE;
+	}
+	getchar();
+	xil_printf ("vita_assem_0 err: %x\n\r", get_vita_assem_err(0));
+	xil_printf("TxSend: Success\r\n");
 
 
     xil_printf("\n\r--- swrite_pkt3a ---\n\r");
 	getchar();
 	xil_printf("TxSend\n\r");
 	/* Transmit the Data Stream */
-	Status = TxSend(&Fifo_Initiator, swrite_pkt3a, 8);
+	Status = TxSend(&Fifo_Initiator, swrite_pkt3a, 9);
 	if (Status != XST_SUCCESS){
 		xil_printf("Transmisson of Data failed\n\r");
 		return XST_FAILURE;
@@ -447,7 +450,7 @@ int swrite_toadi_test()
 	getchar();
 	xil_printf("TxSend\n\r");
 	/* Transmit the Data Stream */
-	Status = TxSend(&Fifo_Initiator, swrite_pkt3b, 4);
+	Status = TxSend(&Fifo_Initiator, swrite_pkt3b, 5);
 	if (Status != XST_SUCCESS){
 		xil_printf("Transmisson of Data failed\n\r");
 		return XST_FAILURE;
@@ -460,7 +463,7 @@ int swrite_toadi_test()
 	getchar();
 	xil_printf("TxSend\n\r");
 	/* Transmit the Data Stream */
-	Status = TxSend(&Fifo_Initiator, swrite_pkt4, 6);
+	Status = TxSend(&Fifo_Initiator, swrite_pkt4, 7);
 	if (Status != XST_SUCCESS){
 		xil_printf("Transmisson of Data failed\n\r");
 		return XST_FAILURE;
@@ -468,17 +471,19 @@ int swrite_toadi_test()
 	xil_printf ("vita_assem_0 err: %x\n\r", get_vita_assem_err(0));
 	xil_printf("TxSend: Success\r\n");
 
-    xil_printf("\n\r--- swrite_pkt5 ---\n\r");
-	getchar();
-	xil_printf("TxSend\n\r");
-	/* Transmit the Data Stream */
-	Status = TxSend(&Fifo_Initiator, swrite_pkt5, 66);
-	if (Status != XST_SUCCESS){
-		xil_printf("Transmisson of Data failed\n\r");
-		return XST_FAILURE;
-	}
-	xil_printf ("vita_assem_0 err: %x\n\r", get_vita_assem_err(0));
-	xil_printf("TxSend: Success\r\n");
+
+	  xil_printf("\n\r--- swrite_pkt2 ---\n\r");
+		getchar();
+		xil_printf("TxSend\n\r");
+		/* Transmit the Data Stream */
+		Status = TxSend(&Fifo_Initiator, swrite_pkt2, 10);
+		if (Status != XST_SUCCESS){
+			xil_printf("Transmisson of Data failed\n\r");
+			return XST_FAILURE;
+		}
+		xil_printf("TxSend: Success\r\n");
+
+
 
 	return 1;
 }

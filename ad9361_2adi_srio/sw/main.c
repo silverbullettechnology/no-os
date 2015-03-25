@@ -492,6 +492,13 @@ int main(void)
 	init_srio_fifo();
 	reset_srio();
 
+	set_srio_rxlpmen (0);
+	set_srio_loopback (1);
+	set_srio_diffctl (1);
+	set_srio_txprecursor (0);
+	set_srio_txpostcursor (0);
+
+
 
 #if defined XILINX_PLATFORM || defined LINUX_PLATFORM
 #ifdef DAC_DMA

@@ -809,8 +809,65 @@ void set_swrite_bypass(int en)
 	else
 		AXILITE_TEST_mWriteSlaveReg0 (XPAR_SYS_REG_0_BASEADDR, SRIO_CTRL_REG, ~SWRITE_BYPASS & temp);
 #endif
-
 }
+
+void set_srio_rxlpmen (int en)
+{
+	u32 temp;
+#ifdef XPAR_SYS_REG_0_BASEADDR
+	temp = AXILITE_TEST_mReadSlaveReg0(XPAR_SYS_REG_0_BASEADDR, SRIO_CTRL_REG);
+	if (en)
+		AXILITE_TEST_mWriteSlaveReg0 (XPAR_SYS_REG_0_BASEADDR, SRIO_CTRL_REG, RXLPMEN | temp);
+	else
+		AXILITE_TEST_mWriteSlaveReg0 (XPAR_SYS_REG_0_BASEADDR, SRIO_CTRL_REG, ~RXLPMEN & temp);
+#endif
+}
+
+
+void set_srio_loopback (int val)
+{
+#ifdef XPAR_SYS_REG_0_BASEADDR
+	u32 temp;
+	val = val & 0x07;
+	temp = AXILITE_TEST_mReadSlaveReg0(XPAR_SYS_REG_0_BASEADDR, SRIO_CTRL_REG);
+	temp = temp & ~LOOPBACK_MASK;
+	AXILITE_TEST_mWriteSlaveReg0 (XPAR_SYS_REG_0_BASEADDR, SRIO_CTRL_REG, temp | (val << LOOPBACK_SHIFT) );
+#endif
+}
+
+void set_srio_diffctl (int val)
+{
+#ifdef XPAR_SYS_REG_0_BASEADDR
+	u32 temp;
+	val = val & 0x0f;
+	temp = AXILITE_TEST_mReadSlaveReg0(XPAR_SYS_REG_0_BASEADDR, SRIO_CTRL_REG);
+	temp = temp & ~DIFFCTRL_MASK;
+	AXILITE_TEST_mWriteSlaveReg0 (XPAR_SYS_REG_0_BASEADDR, SRIO_CTRL_REG, temp | (val << DIFFCTRL_SHIFT) );
+#endif
+}
+
+void set_srio_txprecursor (int val)
+{
+#ifdef XPAR_SYS_REG_0_BASEADDR
+	u32 temp;
+	val = val & 0x1F;
+	temp = AXILITE_TEST_mReadSlaveReg0(XPAR_SYS_REG_0_BASEADDR, SRIO_CTRL_REG);
+	temp = temp & ~TXPRECURSOR_MASK;
+	AXILITE_TEST_mWriteSlaveReg0 (XPAR_SYS_REG_0_BASEADDR, SRIO_CTRL_REG, temp | (val << TXPRECURSOR_SHIFT) );
+#endif
+}
+
+void set_srio_txpostcursor (int val)
+{
+#ifdef XPAR_SYS_REG_0_BASEADDR
+	u32 temp;
+	val = val & 0x1F;
+	temp = AXILITE_TEST_mReadSlaveReg0(XPAR_SYS_REG_0_BASEADDR, SRIO_CTRL_REG);
+	temp = temp & ~TXPOSTCURSOR_MASK;
+	AXILITE_TEST_mWriteSlaveReg0 (XPAR_SYS_REG_0_BASEADDR, SRIO_CTRL_REG, temp | (val << TXPOSTCURSOR_SHIFT) );
+#endif
+}
+
 
 
 void print_srio_stat()
@@ -818,6 +875,8 @@ void print_srio_stat()
 	u32 base_addr = XPAR_SYS_REG_0_BASEADDR;
 	u32 temp;
 	int mode_1x, clk_lock_out, port_initialized, link_initialized;
+	int gtrx_disperr, gtrx_notintable, port_err;
+	int device_id;
 
 	temp    = AXILITE_TEST_mReadSlaveReg0 (base_addr, SRIO_CTRL_REG);
 	xil_printf ("SRIO RESET: (%x)\n\r", temp);
@@ -829,10 +888,20 @@ void print_srio_stat()
 	port_initialized = (temp & 0x02)? 1 : 0;
 	link_initialized = (temp & 0x01)? 1 : 0;
 
+	gtrx_disperr     = (temp & 0x40)? 1 : 0;
+	gtrx_notintable  = (temp & 0x20)? 1 : 0;
+	port_err         = (temp & 0x10)? 1 : 0;
+
+	device_id        = (temp & 0xFFFF0000) >> 16;
+
 	xil_printf ("PRINT SRIO: (%x)\n\r", temp);
+	xil_printf ("  DEVICE ID:        %x\n\r", device_id);
 	xil_printf ("  mode_1x:          %x\n\r", mode_1x);
 	xil_printf ("  clk_lock_out:     %x\n\r", clk_lock_out);
 	xil_printf ("  port_initialized: %x\n\r", port_initialized);
 	xil_printf ("  link_initialized: %x\n\r", link_initialized);
+	xil_printf ("  gtrx_disperr:     %x\n\r", gtrx_disperr);
+	xil_printf ("  gtrx_notintable:  %x\n\r", gtrx_notintable);
+	xil_printf ("  port_err:         %x\n\r", port_err);
 }
 

@@ -18,17 +18,21 @@
 
 // SYS_REG register offsets
 #define SRIO_CTRL_REG			0x00
-	#define SRIO_RESET    0x01
-	#define SWRITE_BYPASS 0x02
+	#define SRIO_RESET    		0x00001
+	#define SWRITE_BYPASS 		0x00002
+	#define LOOPBACK_MASK 		0x0001C
+	#define DIFFCTRL_MASK		0x001E0
+	#define TXPRECURSOR_MASK	0x03E00
+	#define TXPOSTCURSOR_MASK	0x7C000
+	#define RXLPMEN				0x80000
+
+	#define LOOPBACK_SHIFT 		2
+	#define DIFFCTRL_SHIFT		5
+	#define TXPRECURSOR_SHIFT	9
+	#define TXPOSTCURSOR_SHIFT	14
 
 #define SRIO_STAT_REG			0x04
-#define SRIO_TRESP_SRCDEST_REG	0x08
-#define SRIO_IREQ_SRCDEST_REG	0x0C
-#define SRIO_TREQ_SRCDEST_REG	0x10
-#define SRIO_IRESP_SRCDEST_REG	0x14
-#define ADI_ADC_SNK_REG			0x18
-
-
+#define ADI_ADC_SNK_REG			0x08
 
 #define AD0_TO_DDR  0x0
 #define AD1_TO_DDR  0x0
@@ -69,6 +73,12 @@ void enable_swrite_pack ();
 
 void set_swrite_bypass(int en);
 void set_adi_adc_snk (int snk);
+
+void set_srio_rxlpmen (int en);
+void set_srio_loopback (int val);
+void set_srio_diffctl (int val);
+void set_srio_txprecursor (int val);
+void set_srio_txpostcursor (int val);
 
 int msg_test();
 int resp_test();

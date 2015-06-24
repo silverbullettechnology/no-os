@@ -41,7 +41,7 @@ u32 get_vita_assem_err (int adinum);
 void set_vita_trig_on (u32 base_addr, u32 tsi, u32 tsf_hi, u32 tsf_lo);
 void set_vita_trig_off (u32 base_addr, u32 tsi, u32 tsf_hi, u32 tsf_lo);
 void set_vita_clk (u32 tsi);
-u32 get_vita_clk ();
+u32 get_vita_clk (int clk_num);
 
 
 void vita_pack_test_legacy   (u32 adi_num, u32 stream_id, u32 pkt_size, u32 words_to_pack);

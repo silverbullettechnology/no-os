@@ -42,6 +42,8 @@
 /******************************************************************************/
 #include <stdint.h>
 #include <xparameters.h>
+#include "spi.h"
+
 #ifdef _XPARAMETERS_PS_H_
 #include <xgpiops.h>
 #include <xspips.h>
@@ -234,6 +236,30 @@ int32_t spi_read(uint8_t *data,
 /***************************************************************************//**
  * @brief spi_write_then_read
 *******************************************************************************/
+#ifdef SW_SPI
+
+int spi_write_then_read(struct spi_device *spi,
+		const unsigned char *txbuf, unsigned n_tx,
+		unsigned char *rxbuf, unsigned n_rx)
+{
+	uint8_t buffer[20] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+						  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+						  0x00, 0x00, 0x00, 0x00};
+	uint8_t byte;
+//	xil_printf ("sw_spi: \r\n");
+
+	//	HAL_soft_spi_transfer(spi_ss, txbuf, rxbuf, n_tx + n_rx);
+		HAL_soft_spi_transfer(txbuf, buffer, n_tx + n_rx);
+
+		for(byte = n_tx; byte < n_tx + n_rx; byte++)
+		{
+			rxbuf[byte - n_tx] = buffer[byte];
+		}
+
+	return SUCCESS;
+}
+
+#else
 int spi_write_then_read(struct spi_device *spi,
 		const unsigned char *txbuf, unsigned n_tx,
 		unsigned char *rxbuf, unsigned n_rx)
@@ -255,6 +281,8 @@ int spi_write_then_read(struct spi_device *spi,
 
 	return SUCCESS;
 }
+#endif //SW_SPI
+
 
 /***************************************************************************//**
  * @brief gpio_init
@@ -326,6 +354,15 @@ void gpio_data(uint8_t pin, uint8_t data)
 	Xil_Out32((gpio_config->BaseAddress + XGPIO_DATA_OFFSET), config);
 #endif
 }
+
+
+
+int gpio_get_value (unsigned gpio)
+{
+	return ( XGpioPs_ReadPin(&gpio_instance, gpio) );
+}
+
+
 
 /***************************************************************************//**
  * @brief gpio_set_value

@@ -58,9 +58,6 @@ u32 vita_pkt_d[12] = {
 
 
 
-
-
-
 //1
 // pkt0
 u32 vita_pkt_1[12] = {

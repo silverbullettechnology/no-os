@@ -22,6 +22,13 @@ static uint32_t rshift_tx (uint32_t x)
 	return output;
 }
 
+static uint32_t signext_tx (uint32_t x)
+{
+	uint32_t output = x ;
+	if (x>>11 & 1) output = output | 0x0000f000;
+	if (x>>27 & 1) output = output | 0xf0000000;
+	return output;
+}
 
 void rxtest_main(struct ad9361_rf_phy *phy)
 {
@@ -91,9 +98,32 @@ while(1){
 }//while(1)
 }
 
+void dma_loopback_test (struct ad9361_rf_phy *phy)
+{
+	u8 			adi_num;
+	int 		errors;
+	int			timeout = 2;
+
+	adi_num = phy->pcore_id;
+
+	memset((void *)ADC_DDR_BASEADDR, 0xff, WordsToRx*2);
+	Xil_DCacheFlush();
+
+	reset_dmarx(adi_num);
+	reset_dmatx(adi_num);
+
+	dac_init(phy, DATA_SEL_DMA);
+	sleep(1);
+	adc_capture(WordsToRx, ADC_DDR_BASEADDR, timeout, adi_num, 99);  // 99: do not activate adi2axis module
+
+	errors = CheckRxData_DMAloopback(1);
+	//ShowRxData();
+
+	xil_printf ("Byte ERROR: %d / %d  \n\r", errors, WordsToRx/4 );
+}
 
 
-void txrxtest_main(struct ad9361_rf_phy *phy)
+void txrxtest_main(struct ad9361_rf_phy *phy, int no_shift)
 {
 	u8 			rx_clk_delay;
 	u8 			tx_clk_delay;
@@ -133,7 +163,11 @@ void txrxtest_main(struct ad9361_rf_phy *phy)
 		reset_dmarx(adi_num);
 		reset_dmatx(adi_num);
 
-		dac_init(phy, DATA_SEL_DMA);
+		if (no_shift)
+			dac_init(phy, DATA_SEL_DMA_NOSHIFT);
+		else
+			dac_init(phy, DATA_SEL_DMA);
+
 
 		sleep(1);
 
@@ -150,7 +184,7 @@ void txrxtest_main(struct ad9361_rf_phy *phy)
 
 //		xil_printf("************ TXRXTEST DONE *********************\n\r");
 		//ShowRxData();
-		errors = CheckRxData_DMA(1);
+		errors = CheckRxData_DMA(1, no_shift);
 
 		xil_printf ("Byte ERROR: %d / %d  \n\r", errors, WordsToRx/4 );
 
@@ -336,8 +370,9 @@ int ShowTxData(void)
 	return 0;
 }
 
-
-int CheckRxData_DMA(int p)
+// p: enable to print debug messages
+// no_shift: enable to do comparison without shifting tx data
+int CheckRxData_DMA(int p, int no_shift)
 {
 	u32 rx_temp, tx_temp;
 	u32 rx_temp1, rx_temp2;
@@ -358,8 +393,8 @@ int CheckRxData_DMA(int p)
 	for(Index = 0; Index < 254; Index = Index+4) {
 		tx_temp1 = Xil_In32(DAC_DDR_BASEADDR + Index);
 		tx_temp2 = Xil_In32(DAC_DDR_BASEADDR + Index + 4);
-		tx_temp1 = rshift_tx( tx_temp1);
-		tx_temp2 = rshift_tx( tx_temp2);
+		tx_temp1 = (no_shift)? signext_tx(tx_temp1) : rshift_tx( tx_temp1);
+		tx_temp2 = (no_shift)? signext_tx(tx_temp2) : rshift_tx( tx_temp2);
 //  	    xil_printf("\r\nValue[%4d]: %08x . %08x . %08x", Index, rx_temp1, tx_temp1);
 		if ((tx_temp1 == rx_temp1) && (tx_temp2 == rx_temp2)) index_start = Index;
 	}
@@ -370,8 +405,8 @@ int CheckRxData_DMA(int p)
     	for(Index = 0; Index < 254; Index = Index+4) {
     		tx_temp1 = Xil_In32(DAC_DDR_BASEADDR + Index);
     		tx_temp2 = Xil_In32(DAC_DDR_BASEADDR + Index + 4);
-    		tx_temp1 = rshift_tx( tx_temp1);
-    		tx_temp2 = rshift_tx( tx_temp2);
+    		tx_temp1 = (no_shift)? signext_tx(tx_temp1) : rshift_tx( tx_temp1);
+    		tx_temp2 = (no_shift)? signext_tx(tx_temp2) : rshift_tx( tx_temp2);
 //      	    xil_printf("\r\nValue[%4d]: %08x . %08x ", Index, rx_temp1, tx_temp1);
     	}
     	return (-1);
@@ -382,7 +417,8 @@ int CheckRxData_DMA(int p)
 	for (Index =0; Index < BYTES_TO_RX; Index = Index+4) {
 		rx_temp = Xil_In32(ADC_DDR_BASEADDR + Index);
 		tx_temp = Xil_In32(DAC_DDR_BASEADDR + (index_start + Index - offset) % 256);
-		tx_temp = rshift_tx( tx_temp);
+		tx_temp = (no_shift)? signext_tx(tx_temp) : rshift_tx( tx_temp);
+
   	    if (p) xil_printf("\r\nValue[%4d]: %08x . %08x", Index, rx_temp, tx_temp);
 
 		if (rx_temp != tx_temp){
@@ -401,6 +437,39 @@ int CheckRxData_DMA(int p)
 		return 0;
 }
 
+
+
+int CheckRxData_DMAloopback(int p)
+{
+	u32 rx_temp, tx_temp;
+
+	int Index = 0;
+    int index_start;
+    int error = 0;
+
+
+	int BYTES_TO_RX =512;// 0x400; //WordsToRx;// 0x400;//0x4000;//16384;
+
+	for (Index =0; Index < BYTES_TO_RX; Index = Index+4) {
+		rx_temp = Xil_In32(ADC_DDR_BASEADDR + Index);
+		tx_temp = Xil_In32(DAC_DDR_BASEADDR + (Index) % 256);
+  	    if (p) xil_printf("\r\nValue[%4d]: %08x . %08x", Index, rx_temp, tx_temp);
+
+		if (rx_temp != tx_temp){
+	  	    if (p) xil_printf("\r\nValue[%4d]: %08x . %08x", Index, rx_temp, tx_temp);
+			if (p) xil_printf("*");
+			error = error + 1;
+		}
+	}
+
+//	xil_printf("\r\n ");
+//	xil_printf("ERRORS: %d / %d\r\n ", error, BYTES_TO_RX/4);
+
+	if (error != 0)
+		return error;
+	else
+		return 0;
+}
 
 
 int get_eye_rx(struct ad9361_rf_phy *phy, u8 *delay_vec)
@@ -552,7 +621,7 @@ sleep(1);  // wait for tx data to reach rx side
 //ShowRxData();
 //continue;
 
-		if (CheckRxData_DMA(0) != 0)
+		if (CheckRxData_DMA(0, 0) != 0)
 		{
 			delay_vec[tx_clk_delay] = 1;
 		}

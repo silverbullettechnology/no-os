@@ -10,7 +10,6 @@
 #include "parameters.h"
 
 #include "console.h"
-#include "xiicps.h"
 #include "xllfifo.h"
 
 #include "sbt_mod.h"
@@ -18,198 +17,12 @@
 #include "srio_data_pkts.h"
 
 
-void config_srio_clk()
-{
-	
-	XIicPs_Config *IIC_ConfigPtr;
-	
-	int Status;
-	int read_loop_index;
-	int i;
-
-    double freq_ratio = 125 / 156.25;
-    int rf_freq_whole;
-    int rf_freq_dec;
-    double rf_freq_whole_tmp;
-    double rf_freq_dec_tmp;
-    double rf_freq_tmp;
-    double rf_freq_whole_new;
-    double rf_freq_dec_new;
-    double rf_freq_dec_reg;
-    double rf_freq_new;
-
-// -----------------------------
-// IIC
-
-	xil_printf("---------------------------\n\r");
-	xil_printf("CONFIGURE SRIO CLOCK START \n\r");
-
-    IIC_ConfigPtr = XIicPs_LookupConfig(XPAR_PS7_I2C_1_DEVICE_ID);
-    if (IIC_ConfigPtr == NULL) {
-		xil_printf("XIicPs_LookupConfig Failed\n\r");
-		xil_printf("--- Exiting main() ---\n\r");
-		return XST_FAILURE;
-	}
-
-    Status = XIicPs_CfgInitialize (&IIC_Instance, IIC_ConfigPtr, XPAR_PS7_I2C_1_BASEADDR );
-	if (Status != XST_SUCCESS) {
-		xil_printf("XIicPs_CfgInitialize Failed\n\r");
-		xil_printf("--- Exiting main() ---\n\r");
-		return XST_FAILURE;
-	}
-
-    Status = XIicPs_SelfTest(&IIC_Instance);
-	if (Status != XST_SUCCESS) {
-		xil_printf("XIicPs_SelfTest Failed\n\r");
-		xil_printf("--- Exiting main() ---\n\r");
-		return XST_FAILURE;
-	}
-
-	Status = XIicPs_GetSClk(&IIC_Instance);
-	xil_printf("IIC CLOCK before: %d\n\r", Status);
-
-	Status = XIicPs_SetSClk(&IIC_Instance, 100000);
-	if (Status != XST_SUCCESS) {
-		xil_printf("XIicPs_SetSClk Failed\n\r");
-		xil_printf("--- Exiting main() ---\n\r");
-		return XST_FAILURE;
-	}
-
-	Status = XIicPs_GetSClk(&IIC_Instance);
-	xil_printf("IIC CLOCK after : %d\n\r", Status);
+#ifdef XPAR_SRIO_DMA_BASEADDR
+	#include "xaxidma_hw.h"
+#endif
 
 
-	Status = XIicPs_ReadReg(XPAR_PS7_I2C_1_BASEADDR, XIICPS_ISR_OFFSET);
-	xil_printf("IRQ = [%04x] \n\r", Status);
 
-//    getchar();
-
-	IIC_Buffer[0] = 7;
-
-	Status = XIicPs_MasterSendPolled (&IIC_Instance, IIC_Buffer, 1, 0x5D);
-	if (Status != XST_SUCCESS) {
-		xil_printf("XIicPs_MasterSendPolled Failed\n\r");
-
-		Status = XIicPs_ReadReg(XPAR_PS7_I2C_1_BASEADDR, XIICPS_ISR_OFFSET);
-		xil_printf("IRQ = [%04x] \n\r", Status);
-
-		xil_printf("--- Exiting main() ---\n\r");
-		return XST_FAILURE;
-	}
-
-	while (XIicPs_BusIsBusy(&IIC_Instance));
-
-	Status = XIicPs_MasterRecvPolled (&IIC_Instance, IIC_Buffer, 6, 0x5D);
-	if (Status != XST_SUCCESS) {
-		xil_printf("XIicPs_MasterRecvPolled Failed\n\r");
-		xil_printf("--- Exiting main() ---\n\r");
-		return XST_FAILURE;
-	}
-
-	for(i=0; i<6; i++)
-	{
-		xil_printf("IIC READ DATA [%x] = [%03x] \n\r", i, IIC_Buffer[i]);
-	}
-
-	// HS_DIV = 5
-	// N1     = 8
-	// RFREQ  = RFREQ (no change)
-	IIC_REG[0] = 0x07;
-	IIC_REG[1] = (IIC_Buffer[0] & 0x1f) | 0x20;
-	IIC_REG[2] = IIC_Buffer[1];
-	IIC_REG[3] = IIC_Buffer[2];
-	IIC_REG[4] = IIC_Buffer[3] ;
-	IIC_REG[5] = IIC_Buffer[4];
-	IIC_REG[6] = IIC_Buffer[5] ;
-
-	for(i=0; i<7; i++)
-	{
-		xil_printf("IIC REG [%x] = [%03x] \n\r", i, IIC_REG[i]);
-	}
-
-	//FREEZE DCO (reg137)
-	IIC_Buffer[0] = 137;
-	IIC_Buffer[1] = 0x10;
-
-	Status = XIicPs_MasterSendPolled (&IIC_Instance, IIC_Buffer, 2, 0x5D);
-	if (Status != XST_SUCCESS) {
-		xil_printf("XIicPs_MasterSendPolled Failed\n\r");
-		Status = XIicPs_ReadReg(XPAR_PS7_I2C_1_BASEADDR, XIICPS_ISR_OFFSET);
-		xil_printf("IRQ = [%04x] \n\r", Status);
-		xil_printf("--- Exiting main() ---\n\r");
-		return XST_FAILURE;
-	}
-	while (XIicPs_BusIsBusy(&IIC_Instance));
-
-
-	// WRITE NEW FREQ CONFIG
-	Status = XIicPs_MasterSendPolled (&IIC_Instance, IIC_REG, 7, 0x5D);
-	if (Status != XST_SUCCESS) {
-		xil_printf("XIicPs_MasterSendPolled Failed\n\r");
-		Status = XIicPs_ReadReg(XPAR_PS7_I2C_1_BASEADDR, XIICPS_ISR_OFFSET);
-		xil_printf("IRQ = [%04x] \n\r", Status);
-		xil_printf("--- Exiting main() ---\n\r");
-		return XST_FAILURE;
-	}
-	while (XIicPs_BusIsBusy(&IIC_Instance));
-
-
-	// UNFREEZE DCO
-	IIC_Buffer[0] = 137;
-	IIC_Buffer[1] = 0x00;
-
-	Status = XIicPs_MasterSendPolled (&IIC_Instance, IIC_Buffer, 2, 0x5D);
-	if (Status != XST_SUCCESS) {
-		xil_printf("XIicPs_MasterSendPolled Failed\n\r");
-		Status = XIicPs_ReadReg(XPAR_PS7_I2C_1_BASEADDR, XIICPS_ISR_OFFSET);
-		xil_printf("IRQ = [%04x] \n\r", Status);
-		xil_printf("--- Exiting main() ---\n\r");
-		return XST_FAILURE;
-	}
-	while (XIicPs_BusIsBusy(&IIC_Instance));
-
-	IIC_Buffer[0] = 135;
-	IIC_Buffer[1] = 0x40;
-
-	Status = XIicPs_MasterSendPolled (&IIC_Instance, IIC_Buffer, 2, 0x5D);
-	if (Status != XST_SUCCESS) {
-		xil_printf("XIicPs_MasterSendPolled Failed\n\r");
-		Status = XIicPs_ReadReg(XPAR_PS7_I2C_1_BASEADDR, XIICPS_ISR_OFFSET);
-		xil_printf("IRQ = [%04x] \n\r", Status);
-		xil_printf("--- Exiting main() ---\n\r");
-		return XST_FAILURE;
-	}
-	while (XIicPs_BusIsBusy(&IIC_Instance));
-
-
-	// register readback
-	IIC_Buffer[0] = 7;
-	Status = XIicPs_MasterSendPolled (&IIC_Instance, IIC_Buffer, 1, 0x5D);
-	if (Status != XST_SUCCESS) {
-		xil_printf("XIicPs_MasterSendPolled Failed\n\r");
-		Status = XIicPs_ReadReg(XPAR_PS7_I2C_1_BASEADDR, XIICPS_ISR_OFFSET);
-		xil_printf("IRQ = [%04x] \n\r", Status);
-		xil_printf("--- Exiting main() ---\n\r");
-		return XST_FAILURE;
-	}
-
-
-	Status = XIicPs_MasterRecvPolled (&IIC_Instance, IIC_Buffer, 6, 0x5D);
-	if (Status != XST_SUCCESS) {
-		xil_printf("XIicPs_MasterRecvPolled Failed\n\r");
-		xil_printf("--- Exiting main() ---\n\r");
-		return XST_FAILURE;
-	}
-
-	xil_printf("READBACK REGISTERS\n\r" );
-	for(i=0; i<6; i++)
-	{
-		xil_printf("IIC READ DATA [%x] = [%03x] \n\r", i, IIC_Buffer[i]);
-	}
-
-	xil_printf("CONFIGURE SRIO CLOCK DONE  \n\r");
-	xil_printf("---------------------------\n\r");
-}
 
 int init_srio_fifo()
 {
@@ -272,6 +85,15 @@ void reset_swrite_mod()
     AXILITE_TEST_mWriteSlaveReg0 (XPAR_SRIO_SWRITE_UNPACK_0_BASEADDR, 0, 0x00);
 #endif
 }
+
+
+void set_swrite_srcdest (int adi_path, int srcdest)
+{
+	if (adi_path==0) AXILITE_TEST_mWriteSlaveReg2 (XPAR_SRIO_SWRITE_PACK_0_BASEADDR, 0, srcdest);
+	if (adi_path==1) AXILITE_TEST_mWriteSlaveReg2 (XPAR_SRIO_SWRITE_PACK_1_BASEADDR, 0, srcdest);
+}
+
+
 
 void set_swrite_addr (int adi_path, int txrx, int addr)
 // adi_path: ad1(0), ad2(1)
@@ -574,7 +396,7 @@ int resp_test()
 		return XST_FAILURE;
 	}
 	xil_printf("TxSend: Success\r\n");
-	sleep(1);
+	sleep(6);
 
 	/* Receive the Data Stream */
 	Status = RxReceive(&Fifo_Initiator, TReqBuffer);
@@ -783,32 +605,65 @@ int RxReceive (XLlFifo *InstancePtr, u32* DestinationAddr)
 
 void reset_srio()
 {
+	u32 temp;
+
 #ifdef XPAR_SYS_REG_0_BASEADDR
-	AXILITE_TEST_mWriteSlaveReg0 (XPAR_SYS_REG_0_BASEADDR, SRIO_CTRL_REG, 0x01);
+	temp = AXILITE_TEST_mReadSlaveReg0(XPAR_SYS_REG_0_BASEADDR, SRIO_CTRL_REG);
+	AXILITE_TEST_mWriteSlaveReg0 (XPAR_SYS_REG_0_BASEADDR, SRIO_CTRL_REG, temp|0x01);
 	sleep(1);
-	AXILITE_TEST_mWriteSlaveReg0 (XPAR_SYS_REG_0_BASEADDR, SRIO_CTRL_REG, 0x00);
+	AXILITE_TEST_mWriteSlaveReg0 (XPAR_SYS_REG_0_BASEADDR, SRIO_CTRL_REG, temp);
 	sleep(1);
 #endif
 }
 
 void set_adi_adc_snk (int snk)
 {
+	u32 temp;
+	snk = snk & 0x03;
+
 #ifdef XPAR_SYS_REG_0_BASEADDR
 	AXILITE_TEST_mWriteSlaveReg0 (XPAR_SYS_REG_0_BASEADDR, ADI_ADC_SNK_REG, snk);
+#endif
+
+#ifdef XPAR_ROUTING_REG_0_BASEADDR
+	temp = AXILITE_TEST_mReadSlaveReg0(XPAR_ROUTING_REG_0_BASEADDR, 0x0);
+	temp = (temp & (~0x03)) | snk;
+	AXILITE_TEST_mWriteSlaveReg0 (XPAR_ROUTING_REG_0_BASEADDR, 0x0, temp);
 #endif
 }
 
 
-void set_swrite_bypass(int en)
+void set_dma_loopback (int val)
+{
+#ifdef XPAR_ROUTING_REG_0_BASEADDR
+	u32 temp;
+	val = val & 0x03;
+	temp = AXILITE_TEST_mReadSlaveReg0(XPAR_ROUTING_REG_0_BASEADDR, 0x0);
+	temp = temp & (~0x0C);
+	AXILITE_TEST_mWriteSlaveReg0 (XPAR_ROUTING_REG_0_BASEADDR, 0x0, temp | (val << 2) );
+
+	temp = AXILITE_TEST_mReadSlaveReg0(XPAR_ROUTING_REG_0_BASEADDR, 0x0);
+
+	xil_printf("routing register: %x\n\r", temp);
+
+#endif
+}
+
+
+void set_swrite_bypass(int val)
 {
 	u32 temp;
-#ifdef XPAR_SYS_REG_0_BASEADDR
-	temp = AXILITE_TEST_mReadSlaveReg0(XPAR_SYS_REG_0_BASEADDR, SRIO_CTRL_REG);
-	if (en)
-		AXILITE_TEST_mWriteSlaveReg0 (XPAR_SYS_REG_0_BASEADDR, SRIO_CTRL_REG, SWRITE_BYPASS | temp);
-	else
-		AXILITE_TEST_mWriteSlaveReg0 (XPAR_SYS_REG_0_BASEADDR, SRIO_CTRL_REG, ~SWRITE_BYPASS & temp);
+	val = val & 0x03;
+
+#ifdef XPAR_ROUTING_REG_0_BASEADDR
+	temp = AXILITE_TEST_mReadSlaveReg0(XPAR_ROUTING_REG_0_BASEADDR, 0x000);
+	temp = temp & (~0x30);
+	AXILITE_TEST_mWriteSlaveReg0 (XPAR_ROUTING_REG_0_BASEADDR, 0x000, temp | (val << 4) );
 #endif
+
+	temp = AXILITE_TEST_mReadSlaveReg0(XPAR_ROUTING_REG_0_BASEADDR, 0x0);
+
+	xil_printf("routing register: %x\n\r", temp);
 }
 
 void set_srio_rxlpmen (int en)
@@ -903,5 +758,206 @@ void print_srio_stat()
 	xil_printf ("  gtrx_disperr:     %x\n\r", gtrx_disperr);
 	xil_printf ("  gtrx_notintable:  %x\n\r", gtrx_notintable);
 	xil_printf ("  port_err:         %x\n\r", port_err);
+}
+
+
+
+void print_srio_maint()
+{
+	u32 base_addr = XPAR_SRIO_GEN2_0_BASEADDR;
+	u32 temp;
+
+	temp    = AXILITE_TEST_mReadSlaveReg0 (base_addr, 0x00);
+	xil_printf ("SRIO Device ID CAR:   (%08x)\n\r", temp);
+	temp    = AXILITE_TEST_mReadSlaveReg0 (base_addr, 0x04);
+	xil_printf ("SRIO Device INFO CAR: (%08x)\n\r", temp);
+	temp    = AXILITE_TEST_mReadSlaveReg0 (base_addr, 0x08);
+	xil_printf ("SRIO Assembly ID CAR: (%08x)\n\r", temp);
+
+	temp    = AXILITE_TEST_mReadSlaveReg0 (base_addr, 0x60);
+	xil_printf ("Base Device ID CSR:   (%08x)\n\r", temp);
+
+}
+
+void print_drp_rxafe_attrib()
+{
+	u32 base_addr = XPAR_DRP_BRIDGE_0_BASEADDR;
+    u32 drp0_base = base_addr;
+    u32 drp1_base = base_addr + 0x0800;
+    u32 drp2_base = base_addr + 0x1000;
+    u32 drp3_base = base_addr + 0x1800;
+
+    u16 d0, d1, d2, d3;
+
+    int rx_cm_sel     = 0x011;
+    int pma_rsv2      = 0x082;
+    int term_rcal_cfg = 0x069;
+
+    d0 = AXILITE_TEST_mReadSlaveReg0 (drp0_base, rx_cm_sel * 0x04);
+    d1 = AXILITE_TEST_mReadSlaveReg0 (drp1_base, rx_cm_sel * 0x04);
+    d2 = AXILITE_TEST_mReadSlaveReg0 (drp2_base, rx_cm_sel * 0x04);
+    d3 = AXILITE_TEST_mReadSlaveReg0 (drp3_base, rx_cm_sel * 0x04);
+	xil_printf ("RX_CM_SEL / RX_CM_TRIM: %04x.%04x.%04x.%04x\n\r", d0, d1, d2, d3);
+
+    d0 = AXILITE_TEST_mReadSlaveReg0 (drp0_base, pma_rsv2 * 0x04);
+    d1 = AXILITE_TEST_mReadSlaveReg0 (drp1_base, pma_rsv2 * 0x04);
+    d2 = AXILITE_TEST_mReadSlaveReg0 (drp2_base, pma_rsv2 * 0x04);
+    d3 = AXILITE_TEST_mReadSlaveReg0 (drp3_base, pma_rsv2 * 0x04);
+	xil_printf ("PMA_RSV2:               %04x.%04x.%04x.%04x\n\r", d0, d1, d2, d3);
+
+    d0 = AXILITE_TEST_mReadSlaveReg0 (drp0_base, term_rcal_cfg * 0x04);
+    d1 = AXILITE_TEST_mReadSlaveReg0 (drp1_base, term_rcal_cfg * 0x04);
+    d2 = AXILITE_TEST_mReadSlaveReg0 (drp2_base, term_rcal_cfg * 0x04);
+    d3 = AXILITE_TEST_mReadSlaveReg0 (drp3_base, term_rcal_cfg * 0x04);
+	xil_printf ("TERM_RCAL_CFG:          %04x.%04x.%04x.%04x\n\r", d0, d1, d2, d3);
+
+}
+
+void srio_tx_axidma_write(uint32_t regAddr, uint32_t data)
+{
+	Xil_Out32(XPAR_SRIO_DMA_BASEADDR + regAddr, data);
+}
+
+void reset_sriodmatx()
+{
+	srio_tx_axidma_write(XAXIDMA_CR_OFFSET, XAXIDMA_CR_RESET_MASK); // Reset DMA engine
+	srio_tx_axidma_write(XAXIDMA_CR_OFFSET, 0);
+}
+
+void srio_dma_setup ()
+{
+
+	Xil_Out32(XPAR_SRIO_DMA_COMB_0_BASEADDR + 0x0000, 0x02);  // reset
+	Xil_Out32(XPAR_SRIO_DMA_COMB_0_BASEADDR + 0x0000, 0x00);
+	Xil_Out32(XPAR_SRIO_DMA_COMB_0_BASEADDR + 0x0008, 0x08); // number of packets
+	Xil_Out32(XPAR_SRIO_DMA_COMB_0_BASEADDR + 0x0000, 0x01); // enable
+
+
+
+	Xil_Out32(XPAR_SRIO_DMA_SPLIT_0_BASEADDR + 0x0000, 0x02);  // reset
+	Xil_Out32(XPAR_SRIO_DMA_SPLIT_0_BASEADDR + 0x0000, 0x00);
+	Xil_Out32(XPAR_SRIO_DMA_SPLIT_0_BASEADDR + 0x0008, 0x08); // number of packets
+	Xil_Out32(XPAR_SRIO_DMA_SPLIT_0_BASEADDR + 0x0000, 0x01); // enable
+
+}
+
+void srio_tx_axidma ()
+{
+	uint32_t length;
+	uint32_t ba;
+	uint32_t temp;
+
+	Xil_Out32(DAC_DDR_BASEADDR + 0x00, 0x00000005);
+	Xil_Out32(DAC_DDR_BASEADDR + 0x04, 0xffffffff);
+	Xil_Out32(DAC_DDR_BASEADDR + 0x08, 0x0000dea8);
+	Xil_Out32(DAC_DDR_BASEADDR + 0x0c, 0x00600000);
+	Xil_Out32(DAC_DDR_BASEADDR + 0x10, 0x08000010);
+	Xil_Out32(DAC_DDR_BASEADDR + 0x14, 0x0000efbe);
+	Xil_Out32(DAC_DDR_BASEADDR + 0x18, 0x01dadada);
+	Xil_Out32(DAC_DDR_BASEADDR + 0x1c, 0x02efefef);
+	Xil_Out32(DAC_DDR_BASEADDR + 0x20, 0x03dadada);
+	Xil_Out32(DAC_DDR_BASEADDR + 0x24, 0x04efefef);
+	Xil_Out32(DAC_DDR_BASEADDR + 0x28, 0x05dadada);
+	Xil_Out32(DAC_DDR_BASEADDR + 0x2c, 0x06efefef);
+
+//	u32 swrite_dma_pkt1 [] = {
+//		0x00000000, 0x00000005,
+//		0x0000dea8, 0x00600000,    // SRIO address: 0xdea8
+//		0x08000010, 0x0000efbe,//	0x10000008, 0xbeef0000,    // VITA IF Packet, size:8, streamID:0xbeef000
+//		0x01dadada, 0x02efefef,//	0xdadada01, 0xefefef02,    // payload: 6 words
+//		0x03dadada, 0x04efefef,//	0xdadada03, 0xefefef04,
+//		0x05dadada, 0x06efefef //	0xdadada05, 0xefefef06
+//	};
+	length = 8*32 + 8;   //swrite = 256 bytes; tuser = 8 bytes
+	length = 320;   // 16 word aligned address
+
+
+		ba = DAC_DDR_BASEADDR + (length*2);
+		Xil_Out32((ba + 0x000), (ba + 0x40)); // next descriptor
+		Xil_Out32((ba + 0x004), 0x00); // reserved
+		Xil_Out32((ba + 0x008), DAC_DDR_BASEADDR); // start address
+		Xil_Out32((ba + 0x00c), 0x00); // reserved
+		Xil_Out32((ba + 0x010), 0x00); // reserved
+		Xil_Out32((ba + 0x014), 0x00); // reserved
+		Xil_Out32((ba + 0x018), (length) | XAXIDMA_BD_CTRL_TXSOF_MASK ); // no. of bytes + TXSOF
+		Xil_Out32((ba + 0x01c), 0x00); // status
+
+		Xil_Out32((ba + 0x040), (ba + 0x00)); // next descriptor
+		Xil_Out32((ba + 0x044), 0x00); // reserved
+		Xil_Out32((ba + 0x048), DAC_DDR_BASEADDR); // start address
+		Xil_Out32((ba + 0x04c), 0x00); // reserved
+		Xil_Out32((ba + 0x050), 0x00); // reserved
+		Xil_Out32((ba + 0x054), 0x00); // reserved
+		Xil_Out32((ba + 0x058), (length)| XAXIDMA_BD_CTRL_TXEOF_MASK); // no. of bytes + TXEOF
+		Xil_Out32((ba + 0x05c), 0x00); // status
+		Xil_DCacheFlush();
+
+		srio_tx_axidma_write(XAXIDMA_CDESC_OFFSET, ba); // Current descriptor pointer
+		srio_tx_axidma_write(XAXIDMA_CR_OFFSET, XAXIDMA_CR_RUNSTOP_MASK | XAXIDMA_CR_CYCLIC_MASK); // Start DMA channel + cyclic bit
+//		srio_tx_axidma_write(XAXIDMA_TDESC_OFFSET, (ba+0x40)); // Tail descriptor pointer
+		srio_tx_axidma_write(XAXIDMA_TDESC_OFFSET, 0x50); // Tail descriptor pointer (dummy address if in cyclic mode)
+
+		sleep(1);
+}
+
+
+
+
+
+
+
+
+
+void srio_rx_axidma_write(uint32_t regAddr, uint32_t data)
+{
+	Xil_Out32(XPAR_SRIO_DMA_BASEADDR + XAXIDMA_RX_OFFSET + regAddr, data);
+}
+
+void reset_sriodmarx()
+{
+	srio_rx_axidma_write(XAXIDMA_CR_OFFSET, XAXIDMA_CR_RESET_MASK); // Reset DMA engine
+	srio_rx_axidma_write(XAXIDMA_CR_OFFSET, 0);
+}
+
+
+/***************************************************************************//**
+ * @brief adc_capture
+*******************************************************************************/
+
+void srio_rx_axidma(uint32_t start_address, int timeout)
+{
+	uint32_t status;
+	uint32_t ba;
+	uint32_t length;
+
+	length = 0x840;
+
+
+	ba = start_address + (length*2);
+	Xil_Out32((ba + 0x000), (ba + 0x40)); // next descriptor
+	Xil_Out32((ba + 0x004), 0x00); // reserved
+	Xil_Out32((ba + 0x008), start_address); // start address
+	Xil_Out32((ba + 0x00c), 0x00); // reserved
+	Xil_Out32((ba + 0x010), 0x00); // reserved
+	Xil_Out32((ba + 0x014), 0x00); // reserved
+	Xil_Out32((ba + 0x018), (length)); // no. of bytes
+	Xil_Out32((ba + 0x01c), 0x00); // status
+	Xil_Out32((ba + 0x040), (ba + 0x00)); // next descriptor
+	Xil_Out32((ba + 0x044), 0x00); // reserved
+	Xil_Out32((ba + 0x048), start_address); // start address
+	Xil_Out32((ba + 0x04c), 0x00); // reserved
+	Xil_Out32((ba + 0x050), 0x00); // reserved
+	Xil_Out32((ba + 0x054), 0x00); // reserved
+	Xil_Out32((ba + 0x058), length); // no. of bytes
+	Xil_Out32((ba + 0x05c), 0x00); // status
+	Xil_DCacheFlush();
+
+//	srio_rx_axidma_write(XAXIDMA_CR_OFFSET, XAXIDMA_CR_RESET_MASK); // Reset DMA engine
+//	srio_rx_axidma_write(XAXIDMA_CR_OFFSET, 0);
+	srio_rx_axidma_write(XAXIDMA_CDESC_OFFSET, ba); // Current descriptor pointer
+	srio_rx_axidma_write(XAXIDMA_CR_OFFSET, XAXIDMA_CR_RUNSTOP_MASK); // Start DMA channel
+	srio_rx_axidma_write(XAXIDMA_TDESC_OFFSET, (ba+0x40)); // Tail descriptor pointer
+
+	sleep(timeout);
 }
 

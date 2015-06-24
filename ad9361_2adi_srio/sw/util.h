@@ -59,8 +59,9 @@
 #define AD0_enable_pin (54 + 45)
 #define AD0_txnrx_pin  (54 + 46)
 #define AD1_enable_pin (54 + 52)
-#define AD1_txnrx_pin  (54 + 53)
+#define AD1_txnrx_pin  (54 + 43)
 
+#define SRIO_PCIE_SEL_pin (54 + 30)
 
 /******************************************************************************/
 /********************** Macros and Constants Definitions **********************/

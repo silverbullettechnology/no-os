@@ -456,8 +456,9 @@ void dac_init_axidma (struct ad9361_rf_phy *phy, uint8_t data_sel)
 		dac_write(ADI_REG_CNTRL_2, 0, adi_num);
 		dac_datasel(-1, DATA_SEL_DDS, phy);
 		break;
-	case DATA_SEL_DMA:
 
+	case DATA_SEL_DMA:
+	case DATA_SEL_DMA_NOSHIFT:
 		tx_count = sizeof(sine_lut) / sizeof(uint16_t);
 
 		dac_gen_sine (phy, data_sel);
@@ -504,7 +505,7 @@ void dac_init_axidma (struct ad9361_rf_phy *phy, uint8_t data_sel)
 
 
 		dac_write(ADI_REG_CNTRL_2, 0, adi_num);
-		dac_datasel(-1, DATA_SEL_DMA, phy);
+		dac_datasel(-1, data_sel, phy);
 		break;
 	default:
 		break;
@@ -672,6 +673,8 @@ int dac_datasel(int32_t chan, enum dds_data_select sel, struct ad9361_rf_phy *ph
 		case DATA_SEL_DDS:
 		case DATA_SEL_SED:
 		case DATA_SEL_DMA:
+		case DATA_SEL_DMA_NOSHIFT:
+
 			dac_read(ADI_REG_CNTRL_2, &reg, adi_num);
 			reg &= ~ADI_DATA_SEL(~0);
 			reg |= ADI_DATA_SEL(sel);
@@ -704,10 +707,15 @@ void dac_gen_sine (struct ad9361_rf_phy *phy, uint8_t data_sel)
 	u8 adi_num;
 	uint32_t ba;
 
+	uint32_t lsb_shift;
+
 	adi_num = phy->pcore_id;
 
 	tx_count = sizeof(sine_lut) / sizeof(uint16_t);
  // 	    xil_printf("dac_init: tx_count: %d \r\n", tx_count);
+
+	if (data_sel== DATA_SEL_DMA_NOSHIFT) lsb_shift = 0;
+    if (data_sel== DATA_SEL_DMA) lsb_shift = 4;
 
 	if(phy->dds_st.rx2tx2)
 	{
@@ -719,8 +727,8 @@ void dac_gen_sine (struct ad9361_rf_phy *phy, uint8_t data_sel)
 				index_q1 = index + (tx_count / 4);
 				if(index_q1 >= (tx_count * 2))
 					index_q1 -= (tx_count * 2);
-				data_i1 = (sine_lut[index_i1 / 2] << 20);
-				data_q1 = (sine_lut[index_q1 / 2] << 4);
+				data_i1 = (sine_lut[index_i1 / 2] << (16+ lsb_shift));
+				data_q1 = (sine_lut[index_q1 / 2] << lsb_shift);
 				Xil_Out32(DAC_DDR_BASEADDR + packets*(tx_count * 8) + index * 4, data_i1 | data_q1);
 
 				index_i2 = index_i1 + (tx_count / 2);
@@ -729,8 +737,8 @@ void dac_gen_sine (struct ad9361_rf_phy *phy, uint8_t data_sel)
 					index_i2 -= (tx_count * 2);
 				if(index_q2 >= (tx_count * 2))
 					index_q2 -= (tx_count * 2);
-				data_i2 = (sine_lut[index_i2 / 2] << 20);
-				data_q2 = (sine_lut[index_q2 / 2] << 4);
+				data_i2 = (sine_lut[index_i2 / 2] << (16 + lsb_shift));
+				data_q2 = (sine_lut[index_q2 / 2] << (lsb_shift));
 				Xil_Out32(DAC_DDR_BASEADDR + packets*(tx_count * 8) + (index + 1) * 4, data_i2 | data_q2);
 			}
 		}
@@ -745,8 +753,8 @@ void dac_gen_sine (struct ad9361_rf_phy *phy, uint8_t data_sel)
 				index_q1 = index + (tx_count / 4);
 				if(index_q1 >= tx_count)
 					index_q1 -= tx_count;
-				data_i1 = (sine_lut[index_i1] << 20);
-				data_q1 = (sine_lut[index_q1] << 4);
+				data_i1 = (sine_lut[index_i1] << (16 + lsb_shift));
+				data_q1 = (sine_lut[index_q1] << lsb_shift);
 				Xil_Out32(DAC_DDR_BASEADDR + packets*(tx_count * 4) + index * 4, data_i1 | data_q1);
 			}
 		}
@@ -757,9 +765,13 @@ void dac_gen_sine (struct ad9361_rf_phy *phy, uint8_t data_sel)
 
 
 
+int32_t swap_int32( int32_t val )
+{
+    val = ((val << 8) & 0xFF00FF00) | ((val >> 8) & 0xFF00FF );
+    return (val << 16) | ((val >> 16) & 0xFFFF);
+}
 
-
-void dac_user_axidma (struct ad9361_rf_phy *phy, u32* data, u32 length)
+void dac_user_axidma (struct ad9361_rf_phy *phy, u32* data, u32 length, int swap_endian)
 {
 	uint32_t tx_count;
 	uint32_t index;
@@ -784,6 +796,9 @@ void dac_user_axidma (struct ad9361_rf_phy *phy, u32* data, u32 length)
 
 	for (index = 0; index < tx_count; index++) {
 		Xil_Out32(DAC_DDR_BASEADDR +  index * 4, data[index]);
+		if (swap_endian){
+			Xil_Out32(DAC_DDR_BASEADDR +  index * 4, swap_int32(data[index]));
+		}
 		Xil_DCacheFlush();
 //		xil_printf ("mem[%x]: %x, %x  \n\r", index, data[index], DAC_DDR_BASEADDR +  index * 4);
 	}

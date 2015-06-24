@@ -183,6 +183,6 @@ void dds_update(struct ad9361_rf_phy *phy);
 int dac_datasel(int32_t chan, enum dds_data_select sel, struct ad9361_rf_phy *phy);
 
 void dac_gen_sine (struct ad9361_rf_phy *phy, uint8_t data_sel);
-void dac_user_axidma (struct ad9361_rf_phy *phy, u32* data, u32 length);
+void dac_user_axidma (struct ad9361_rf_phy *phy, u32* data, u32 length, int swapendian);
 
 #endif

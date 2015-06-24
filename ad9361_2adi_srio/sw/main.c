@@ -42,6 +42,8 @@
 /******************************************************************************/
 #define CONSOLE_COMMANDS
 #define XILINX_PLATFORM
+#define SW_SPI
+#define NO_9361
 
 /******************************************************************************/
 /***************************** Include Files **********************************/
@@ -50,7 +52,7 @@
 #include "parameters.h"
 #include "platform.h"
 #include "srio_mod.h"
-
+#include "spi.h"
 
 #ifdef CONSOLE_COMMANDS
 #include "command.h"
@@ -67,6 +69,7 @@
 
 #include "sbt_mod.h"
 #include "rxtest.h"
+#include "sleep.h"
 
 /******************************************************************************/
 /************************ Variables Definitions *******************************/
@@ -93,7 +96,7 @@ char				received_cmd[30] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 
 AD9361_InitParam default_init_param = {
 	/* Reference Clock */
-	38400000UL,	//reference_clk_rate
+	40000000UL,	//reference_clk_rate
 	/* Base Configuration */
 	1,		//two_rx_two_tx_mode_enable *** adi,2rx-2tx-mode-enable
 	1,		//frequency_division_duplex_mode_enable *** adi,frequency-division-duplex-mode-enable
@@ -377,7 +380,6 @@ int main(void)
 
 
 
-
 	xil_printf ("Enter to continue:");
 	temp = console_get_num(received_cmd);
 
@@ -393,6 +395,12 @@ int main(void)
 	gpio_init(GPIO_DEVICE_ID);
 //	gpio_direction(default_init_param.gpio_resetb, 1);
 
+
+	for (temp=54; temp<(54+54); temp++)
+	{
+		gpio_direction(temp, 0);
+	}
+
 	xil_printf("************ TOGGLE LED *********************\n\r");
 
 	// SDRDC pins
@@ -402,6 +410,7 @@ int main(void)
 	gpio_direction(LED3_pin, 1);   //
 	gpio_direction(AD0_reset_pin, 1);   //
 	gpio_direction(AD1_reset_pin, 1);   //
+	gpio_direction(SRIO_PCIE_SEL_pin, 1);   //
 
 	gpio_direction(AD0_enable_pin, 1);   //
 	gpio_direction(AD0_txnrx_pin, 1);   //
@@ -429,11 +438,18 @@ int main(void)
 	gpio_data(AD0_reset_pin, 1);
 	gpio_data(AD1_reset_pin, 1);
 
+
 	xil_printf("************ SPI INIT *********************\n\r");
+#ifdef SW_SPI
+	HAL_SPIInit();
+#else
 	spi_init(SPI_DEVICE_ID, 1, 0);
+#endif
 
 
 	xil_printf("************ SPI SS TEST *********************\n\r");
+	sleep(1);
+
 	set_spi_ss(0); xil_printf ("9361_chip_0 initial  %x \n\r", ad9361_spi_read(ad9361_phy_0->spi,REG_CTRL_OUTPUT_ENABLE));
 	set_spi_ss(1); xil_printf ("9361_chip_1 initial  %x \n\r", ad9361_spi_read(ad9361_phy_1->spi,REG_CTRL_OUTPUT_ENABLE));
 	set_spi_ss(0); ad9361_spi_write(ad9361_phy_0->spi,REG_CTRL_OUTPUT_ENABLE, 0xaa);
@@ -460,9 +476,9 @@ int main(void)
 	set_spi_ss(1);
 	ad9361_phy_1 = ad9361_init(&default_init_param, AD1_reset_pin, 1);
 
-	ad9361_phy_1->pdata->port_ctrl.lvds_invert[0] = 0xEF;
-	ad9361_phy_1->pdata->port_ctrl.lvds_invert[1] = 0x0F;
-	ad9361_pp_port_setup(ad9361_phy_1, false);
+//	ad9361_phy_1->pdata->port_ctrl.lvds_invert[0] = 0xEF;
+//	ad9361_phy_1->pdata->port_ctrl.lvds_invert[1] = 0x0F;
+//	ad9361_pp_port_setup(ad9361_phy_1, false);
 
 	ad9361_set_tx_fir_config(ad9361_phy_1, tx_fir_config);
 	ad9361_set_rx_fir_config(ad9361_phy_1, rx_fir_config);
@@ -488,17 +504,23 @@ int main(void)
 
 
 	// INITIALIZE SRIO MODULES
-	config_srio_clk();
 	init_srio_fifo();
 	reset_srio();
+	gpio_data (SRIO_PCIE_SEL_pin, 1);   // SRIO / PCIE SELECT
 
 	set_srio_rxlpmen (0);
-	set_srio_loopback (1);
-	set_srio_diffctl (1);
+	set_srio_loopback (0);  //
+	set_srio_diffctl (0xf);
 	set_srio_txprecursor (0);
 	set_srio_txpostcursor (0);
 
+	sleep(2);
+	print_srio_stat();
 
+	print_srio_maint();
+
+	xil_printf("\n\r--- SRIO DRP RX AFE ---\n\r");
+	print_drp_rxafe_attrib();
 
 #if defined XILINX_PLATFORM || defined LINUX_PLATFORM
 #ifdef DAC_DMA
@@ -535,6 +557,47 @@ int main(void)
 	temp = console_get_num(received_cmd);
 
 
+	// SRIO DMA TEST
+   	xil_printf("\n\r--- SRIO DMA TEST ---\n\r");
+	set_swrite_bypass(0x03);  // set bypass mode
+	reset_sriodmatx();
+	reset_sriodmarx();
+
+	srio_dma_setup ();
+	srio_tx_axidma();
+	srio_rx_axidma( ADC_DDR_BASEADDR, 5);
+
+	temp = Xil_In32(ADC_DDR_BASEADDR + 0x00); 	xil_printf("%08x \n\r", temp);
+	temp = Xil_In32(ADC_DDR_BASEADDR + 0x04); 	xil_printf("%08x \n\r", temp);
+	temp = Xil_In32(ADC_DDR_BASEADDR + 0x08); 	xil_printf("%08x \n\r", temp);
+	temp = Xil_In32(ADC_DDR_BASEADDR + 0x0c); 	xil_printf("%08x \n\r", temp);
+	temp = Xil_In32(ADC_DDR_BASEADDR + 0x10); 	xil_printf("%08x \n\r", temp);
+    temp = Xil_In32(ADC_DDR_BASEADDR + 0x14); 	xil_printf("%08x \n\r", temp);
+    temp = Xil_In32(ADC_DDR_BASEADDR + 0x18); 	xil_printf("%08x \n\r", temp);
+	temp = Xil_In32(ADC_DDR_BASEADDR + 0x1c); 	xil_printf("%08x \n\r", temp);
+	temp = Xil_In32(ADC_DDR_BASEADDR + 0x20); 	xil_printf("%08x \n\r", temp);
+	temp = Xil_In32(ADC_DDR_BASEADDR + 0x24); 	xil_printf("%08x \n\r", temp);
+	temp = Xil_In32(ADC_DDR_BASEADDR + 0x28); 	xil_printf("%08x \n\r", temp);
+	temp = Xil_In32(ADC_DDR_BASEADDR + 0x2c); 	xil_printf("%08x \n\r", temp);
+	temp = Xil_In32(ADC_DDR_BASEADDR + 0x30); 	xil_printf("%08x \n\r", temp);
+
+   	xil_printf("\n\r--- SRIO DMA TEST COMPLETE ---\n\r");
+	temp = console_get_num(received_cmd);
+
+    // DMA LOOPBACK TESTS
+	set_dma_loopback (0x03);
+   	xil_printf("\n\r--- DMA0 LOOPBACK TEST ---\n\r");
+	temp = console_get_num(received_cmd);
+	dma_loopback_test(ad9361_phy_0);
+
+   	xil_printf("\n\r--- DMA1 LOOPBACK TEST ---\n\r");
+	temp = console_get_num(received_cmd);
+	dma_loopback_test(ad9361_phy_1);
+
+	xil_printf("\n\r--- DMA LOOPBACK TEST COMPLETE ---\n\r");
+	set_dma_loopback (0x00);
+
+
     // AD9361 TESTS
 	set_adi_adc_snk (ADI_TO_DDR);    // use zynq to test ADI transceiver and calculate eye
 	ad9361_get_rx_sampling_freq (ad9361_phy_0, (uint32_t*)&temp);
@@ -543,8 +606,7 @@ int main(void)
 	xil_printf ("Select ADI device to use (0 or 1):\r\n");
 	temp = console_get_num(received_cmd);
 
-//	reset_dsnk(DSNK_BASE);
-//	enable_adi2axis(ADI2AXIS_BASE, 0x100);
+
 
 	if (temp==0)
 	{
@@ -574,7 +636,6 @@ int main(void)
 	while (get_eye_rx (adi_phy, delay_vec) == 0);
 	set_eye_rx (adi_phy, delay_vec);
 
-//		reset_dsrc(DSRC_BASE);
 
 	xil_printf ("\n\r");
 	xil_printf (" ***** Calculate 9361_%d TX eye\r\n", adi_num);
@@ -589,9 +650,15 @@ int main(void)
 		ad9361_spi_write(adi_phy->spi, REG_TX_CLOCK_DATA_DELAY, 0x40);
 //}
 
-	xil_printf ("Enter to start test:");
+	/*
+	xil_printf ("Enter to start test (dma shift):");
 	temp = console_get_num(received_cmd);
-	txrxtest_main(adi_phy);
+	txrxtest_main(adi_phy, 0);
+*/
+
+	xil_printf ("Enter to start test (dma noshift):");
+	temp = console_get_num(received_cmd);
+	txrxtest_main(adi_phy, 1);
 
 
 // VITA 49 TESTS
@@ -601,6 +668,9 @@ int main(void)
 	reset_dmarx(adi_num);
 	reset_dmatx(adi_num);
 	dac_init(adi_phy, DATA_SEL_DMA);
+
+ad9361_spi_write(adi_phy->spi, REG_BIST_CONFIG, 0X0B);            // 0x09 for PRBS, 0x0B for tone
+	ad9361_spi_write(adi_phy->spi, REG_OBSERVE_CONFIG, 0x00);  // 0x01 enable loopback of tx to rx
 	vita_pack_test_legacy (adi_num, 0xbeef, 200, 200);
 
 
@@ -616,7 +686,8 @@ int main(void)
 	reset_dmarx(adi_num);
 	reset_dmatx(adi_num);
 	dac_init(adi_phy, DATA_SEL_DMA);
-	vita_pack_test_trig (adi_num, 0xbeef, 50, 400);
+//	vita_pack_test_trig (adi_num, 0xbeef, 50, 400);
+	vita_pack_test_trig (adi_num, 0xbeef, 64, 40000);
 
 
 	xil_printf ("Enter to start vita unpack test:");
@@ -632,7 +703,8 @@ int main(void)
 
 	reset_vita_modules();      xil_printf("reset_vita_modules done \r\n");
 	set_vita_clk (0xdead2020); xil_printf("set_vita_clk done \r\n");
-    vita_endtoend_test (0, 0x123450, 0xdeadbeef, 50, 100, adi_phy);
+//    vita_endtoend_test (0, 0x123450, 0xdeadbeef, 50, 100, adi_phy);
+    vita_endtoend_test (0, 0x123450, 0xdeadbeef, 50, 2100000, adi_phy);
 
 
 	xil_printf("   \n\r");

@@ -309,11 +309,12 @@ u32 get_vita_assem_err (int adinum)
 }
 
 #ifdef XPAR_VITA49_CLK_BASEADDR
-u32 get_vita_clk ()
+u32 get_vita_clk (int clk_num)
 {
 	u32 tsi_0, tsf_hi_0, tsf_lo_0;
 	u32 tsi_1, tsf_hi_1, tsf_lo_1;
 	u32 base_addr = XPAR_VITA49_CLK_BASEADDR;
+	u32 roll_0, roll_1;
 
 	tsi_0    = AXILITE_TEST_mReadSlaveReg3 (base_addr, 0);
     tsf_hi_0 = AXILITE_TEST_mReadSlaveReg4 (base_addr, 0);
@@ -322,10 +323,20 @@ u32 get_vita_clk ()
     tsi_1    = AXILITE_TEST_mReadSlaveReg6 (base_addr, 0);
     tsf_hi_1 = AXILITE_TEST_mReadSlaveReg7 (base_addr, 0);
     tsf_lo_1 = AXILITE_TEST_mReadSlaveReg8 (base_addr, 0);
+    tsf_lo_0 = AXILITE_TEST_mReadSlaveReg5 (base_addr, 0);
 
+    roll_0 = AXILITE_TEST_mReadSlaveReg9 (base_addr, 0);
+    roll_1 = AXILITE_TEST_mReadSlaveReg10 (base_addr, 0);
+    xil_printf ("\n\r");
+    xil_printf ("clk_num %x\n\r", clk_num);
     xil_printf ("current clk0 time: %x . %x %x\n\r", tsi_0, tsf_hi_0, tsf_lo_0);
-//    xil_printf ("current clk1 time: %x . %x %x\n\r", tsi_1, tsf_hi_1, tsf_lo_1);
-    return (tsi_0);
+    xil_printf ("current clk1 time: %x . %x %x\n\r", tsi_1, tsf_hi_1, tsf_lo_1);
+    xil_printf ("rollover:  %x %x\n\r", roll_0, roll_1);
+
+    if (clk_num == 1)
+    	return (tsi_1);
+    else
+    	return (tsi_0);
 }
 
 
@@ -333,15 +344,18 @@ void set_vita_clk (u32 tsi)
 {
 	u32 base_addr = XPAR_VITA49_CLK_BASEADDR;
 
+    AXILITE_TEST_mWriteSlaveReg9 (base_addr, 0, 8000000);  // 8M samples rollover
+    AXILITE_TEST_mWriteSlaveReg10 (base_addr, 0,8000000);
+
     AXILITE_TEST_mWriteSlaveReg2 (base_addr, 0, tsi);
     AXILITE_TEST_mWriteSlaveReg0 (base_addr, 0, 0x04); // set tsi counter
     AXILITE_TEST_mWriteSlaveReg0 (base_addr, 0, 0x04);
     AXILITE_TEST_mWriteSlaveReg0 (base_addr, 0, 0x01); // enable module
 
-    get_vita_clk();
+    get_vita_clk(0);
 
     sleep(3);
-    get_vita_clk();
+    get_vita_clk(0);
 
 }
 
@@ -434,14 +448,16 @@ void vita_pack_test_legacy (u32 adi_num, u32 stream_id, u32 pkt_size, u32 words_
 	reset_vita_trig(vita_adc_trig_base_addr);
 
 	// set trigger to be 10 seconds into the future
-    temp = get_vita_clk(vita_clk_base_addr);
+    temp = get_vita_clk(adi_num);
     set_vita_trig_on (vita_adc_trig_base_addr, temp + timeout, 0, 0);
-    set_vita_trig_off (vita_adc_trig_base_addr, 0xffffffff, 0, 0);
+//    set_vita_trig_off (vita_adc_trig_base_addr, 0xffffffff, 0, 0);
 
     AXILITE_TEST_mWriteSlaveReg2 (vita_pack_base_addr, 0, stream_id);
     AXILITE_TEST_mWriteSlaveReg3 (vita_pack_base_addr, 0, pkt_size);         //32-bit words
     AXILITE_TEST_mWriteSlaveReg4 (vita_pack_base_addr, 0, words_to_pack);    //32-bit words
     AXILITE_TEST_mWriteSlaveReg0 (vita_pack_base_addr, 0, 0x01);
+
+    sleep(1);
 
 	if (adc_capture(words_to_pack, ADC_DDR_BASEADDR, timeout*2, adi_num, 0) == -1) {    //64 bit words (adi2axis)
 		xil_printf("rx dma timeout error\n\r");
@@ -482,7 +498,7 @@ void vita_pack_test_trig (u32 adi_num, u32 stream_id, u32 pkt_size, u32 words_to
 	reset_vita_pack(vita_pack_base_addr);
 
 	// set trigger to be 10 seconds into the future
-    temp = get_vita_clk(vita_clk_base_addr);
+    temp = get_vita_clk(adi_num);
     set_vita_trig_on (vita_adc_trig_base_addr, temp + timeout, 0, 0);
     set_vita_trig_off (vita_adc_trig_base_addr, temp + timeout, 0, 200);
 	xil_printf("vita_trig: %x\n\r",  temp + timeout);
@@ -548,18 +564,18 @@ void vita_unpack_test (u32 adi_num, u32 stream_id, int length, struct ad9361_rf_
     // use chipscope to verify that VITA headers are correctly removed before data transmission
 	temp = console_get_num(received_cmd);
 
-    dac_user_axidma (phy, vita_pkt_1, sizeof(vita_pkt_1));
-    dac_user_axidma (phy, vita_pkt_2, sizeof(vita_pkt_2));
-    dac_user_axidma (phy, vita_pkt_3, sizeof(vita_pkt_3));
-    dac_user_axidma (phy, vita_pkt_4, sizeof(vita_pkt_4));
-    dac_user_axidma (phy, vita_pkt_5, sizeof(vita_pkt_5));
-    dac_user_axidma (phy, vita_pkt_6, sizeof(vita_pkt_6));
-    dac_user_axidma (phy, vita_pkt_7, sizeof(vita_pkt_7));
-    dac_user_axidma (phy, vita_pkt_8, sizeof(vita_pkt_8));
-    dac_user_axidma (phy, vita_pkt_9, sizeof(vita_pkt_9));
-    dac_user_axidma (phy, vita_pkt_10, sizeof(vita_pkt_10));
-    dac_user_axidma (phy, vita_pkt_11, sizeof(vita_pkt_11));
-    dac_user_axidma (phy, vita_pkt_12, sizeof(vita_pkt_12));
+    dac_user_axidma (phy, vita_pkt_1, sizeof(vita_pkt_1),1);
+    dac_user_axidma (phy, vita_pkt_2, sizeof(vita_pkt_2),1);
+    dac_user_axidma (phy, vita_pkt_3, sizeof(vita_pkt_3),1);
+    dac_user_axidma (phy, vita_pkt_4, sizeof(vita_pkt_4),1);
+    dac_user_axidma (phy, vita_pkt_5, sizeof(vita_pkt_5),1);
+    dac_user_axidma (phy, vita_pkt_6, sizeof(vita_pkt_6),1);
+    dac_user_axidma (phy, vita_pkt_7, sizeof(vita_pkt_7),1);
+    dac_user_axidma (phy, vita_pkt_8, sizeof(vita_pkt_8),1);
+    dac_user_axidma (phy, vita_pkt_9, sizeof(vita_pkt_9),1);
+    dac_user_axidma (phy, vita_pkt_10, sizeof(vita_pkt_10),1);
+    dac_user_axidma (phy, vita_pkt_11, sizeof(vita_pkt_11),1);
+    dac_user_axidma (phy, vita_pkt_12, sizeof(vita_pkt_12),1);
 
     vita_unpack_stat(adi_num);
 
@@ -614,6 +630,8 @@ void vita_endtoend_test (u32 adi_num, u32 srio_addr, u32 stream_id, u32 pkt_size
 			vita_unpack_base_addr   = XPAR_AXIS_VITA49_UNPACK_0_BASEADDR;
 			vita_adc_trig_base_addr = XPAR_VITA49_TRIG_ADC_0_BASEADDR;
 			vita_dac_trig_base_addr = XPAR_VITA49_TRIG_DAC_0_BASEADDR;
+			set_swrite_srcdest(0, 5);
+
 			// set up swrite pack addresses
 			set_swrite_addr (0, 0, srio_addr);
 			set_swrite_addr (1, 0, 0xbeef0120);
@@ -626,6 +644,8 @@ void vita_endtoend_test (u32 adi_num, u32 srio_addr, u32 stream_id, u32 pkt_size
 			vita_unpack_base_addr   = XPAR_AXIS_VITA49_UNPACK_1_BASEADDR;
 			vita_adc_trig_base_addr = XPAR_VITA49_TRIG_ADC_1_BASEADDR;
 			vita_dac_trig_base_addr = XPAR_VITA49_TRIG_DAC_1_BASEADDR;
+			set_swrite_srcdest(1, 5);
+
 			// set up swrite pack addresses
 			set_swrite_addr (1, 0, srio_addr);
 			set_swrite_addr (0, 0, 0xbeef0120);
@@ -638,6 +658,7 @@ void vita_endtoend_test (u32 adi_num, u32 srio_addr, u32 stream_id, u32 pkt_size
 			vita_unpack_base_addr   = XPAR_AXIS_VITA49_UNPACK_0_BASEADDR;
 			vita_adc_trig_base_addr = XPAR_VITA49_TRIG_ADC_0_BASEADDR;
 			vita_dac_trig_base_addr = XPAR_VITA49_TRIG_DAC_0_BASEADDR;
+			set_swrite_srcdest(0, 5);
 			// set up swrite pack addresses
 			set_swrite_addr (0, 0, srio_addr);
 			set_swrite_addr (1, 0, 0xbeef0120);
@@ -655,14 +676,15 @@ void vita_endtoend_test (u32 adi_num, u32 srio_addr, u32 stream_id, u32 pkt_size
     AXILITE_TEST_mWriteSlaveReg0 (vita_unpack_base_addr, 0, 0x00);  //
 
 	xil_printf("setting trigger \n\r");
-    temp = get_vita_clk();
+    temp = get_vita_clk(adi_num);
 //VITA TRIG
     // set adc_trigger to be 10 seconds into the future
     set_vita_trig_on (vita_adc_trig_base_addr, temp + timeout, 0, 0);
-    set_vita_trig_off (vita_adc_trig_base_addr, temp + timeout, 0, 400);
+    //set_vita_trig_off (vita_adc_trig_base_addr, temp + timeout, 0, 400);
+    set_vita_trig_off (vita_adc_trig_base_addr, temp + timeout+10, 0, 400);
     // set dac trigger to be 20 seconds into the future
     set_vita_trig_on (vita_dac_trig_base_addr, temp + timeout+2, 0, 0);
-    set_vita_trig_off (vita_dac_trig_base_addr, 0xffffffff, 0, 0);
+//    set_vita_trig_off (vita_dac_trig_base_addr, 0xffffffff, 0, 0);
 
 //VITA PACK
     AXILITE_TEST_mWriteSlaveReg2 (vita_pack_base_addr, 0, stream_id);
@@ -682,14 +704,16 @@ void vita_endtoend_test (u32 adi_num, u32 srio_addr, u32 stream_id, u32 pkt_size
 
 
     // why is this necessary?
-	if (adc_capture(words_to_pack*2, ADC_DDR_BASEADDR, timeout*2, adi_num, 1) == -1) {
-		xil_printf("rx dma timeout error\n\r");
-	};
+//	if (adc_capture(words_to_pack*2, ADC_DDR_BASEADDR, timeout*2, adi_num, 1) == -1) {
+//		xil_printf("rx dma timeout error\n\r");
+//	};
 
 	xil_printf("wait \n\r");
 	while(1) {
 		getchar();
-		get_vita_clk();
+		get_vita_clk(adi_num);
+	    vita_unpack_stat(adi_num);
+
 	}
 }
 #endif //XPAR_AXIS_VITA49_PACK_1_BASEADDR

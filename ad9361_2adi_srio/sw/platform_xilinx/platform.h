@@ -45,6 +45,9 @@
 #include <stdint.h>
 #include "util.h"
 
+#define SW_SPI
+
+
 /******************************************************************************/
 /********************** Macros and Constants Definitions **********************/
 /******************************************************************************/
@@ -133,6 +136,7 @@ void gpio_init(uint32_t device_id);
 void gpio_direction(uint8_t pin, uint8_t direction);
 bool gpio_is_valid(int number);
 void gpio_set_value(unsigned gpio, int value);
+int gpio_get_value (unsigned gpio);
 void gpio_data(uint8_t pin, uint8_t data);
 void udelay(unsigned long usecs);
 void mdelay(unsigned long msecs);

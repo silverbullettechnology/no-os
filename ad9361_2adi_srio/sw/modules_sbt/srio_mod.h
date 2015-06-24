@@ -8,7 +8,6 @@
 #include "xstatus.h"
 #include "xil_io.h"
 #include "xllfifo.h"
-#include "xiicps.h"
 
 #define WORD_SIZE 4			    /* Size of words in bytes */
 #define BEAT_SIZE 2				/* Size of beat in words */
@@ -19,7 +18,7 @@
 // SYS_REG register offsets
 #define SRIO_CTRL_REG			0x00
 	#define SRIO_RESET    		0x00001
-	#define SWRITE_BYPASS 		0x00002
+//	#define SWRITE_BYPASS 		0x00002
 	#define LOOPBACK_MASK 		0x0001C
 	#define DIFFCTRL_MASK		0x001E0
 	#define TXPRECURSOR_MASK	0x03E00
@@ -45,7 +44,6 @@ XLlFifo Fifo_Initiator;
 XLlFifo Fifo_Target;
 XLlFifo Fifo_UserDef;
 
-XIicPs IIC_Instance;
 
 u32 IRespBuffer[MAX_BUFF_SIZE * BEAT_SIZE];
 u32 TReqBuffer [MAX_BUFF_SIZE * BEAT_SIZE];
@@ -66,13 +64,17 @@ void reset_srio();
 void print_srio_stat();
 int init_srio_fifo();
 
+void print_srio_maint();
+
 void reset_swrite_mod();
+void set_swrite_srcdest (int adi_path, int srcdest);
 void set_swrite_addr (int adi_path, int txrx, int addr);
 void enable_swrite_unpack ();
 void enable_swrite_pack ();
 
 void set_swrite_bypass(int en);
 void set_adi_adc_snk (int snk);
+void set_dma_loopback (int val);
 
 void set_srio_rxlpmen (int en);
 void set_srio_loopback (int val);
@@ -84,5 +86,12 @@ int msg_test();
 int resp_test();
 int swrite_tozynq_test();
 int swrite_toadi_test();
+
+
+void srio_dma_setup ();
+void reset_sriodmatx();
+void srio_tx_axidma ();
+void reset_sriodmarx();
+void srio_rx_axidma( uint32_t start_address, int timeout);
 
 #endif /** SRIO_MOD_H */

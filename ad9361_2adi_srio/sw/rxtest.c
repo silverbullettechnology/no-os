@@ -33,7 +33,6 @@ static uint32_t signext_tx (uint32_t x)
 void rxtest_main(struct ad9361_rf_phy *phy)
 {
 	u8 			rx_clk_delay;
-	u8 			adi_num;
 	uint32_t 	rx_data_clk;
 	int 		timeout = 2;
 	char		received_cmd[30] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -41,7 +40,6 @@ void rxtest_main(struct ad9361_rf_phy *phy)
 									0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
 	rx_clk_delay = 0x0A;
-	adi_num = phy->pcore_id;
 while(1){
 	for (rx_clk_delay = 0x00; rx_clk_delay < 0x10; rx_clk_delay = rx_clk_delay + 1)
 //	for (rx_clk_delay = 0x60; rx_clk_delay < 0xff; rx_clk_delay = rx_clk_delay + 0x10)
@@ -63,7 +61,7 @@ while(1){
 		//ad9361_spi_write( REG_LVDS_INVERT_CTRL1, 0X10);
 		xil_printf("%03x RX_CLOCK_DATA_DELAY  : %02x \n\r", REG_RX_CLOCK_DATA_DELAY, ad9361_spi_read (phy->spi, REG_RX_CLOCK_DATA_DELAY));
 
-		if (adc_capture(WordsToRx, ADC_DDR_BASEADDR, timeout, adi_num, 0) == -1) {continue;};
+		if (adc_capture(phy, WordsToRx, ADC_DDR_BASEADDR, timeout, 0) == -1) {continue;};
 
 		xil_printf("************ RXTEST DONE *********************\n\r");
 		CheckRxData_PRBS();
@@ -100,21 +98,19 @@ while(1){
 
 void dma_loopback_test (struct ad9361_rf_phy *phy)
 {
-	u8 			adi_num;
 	int 		errors;
 	int			timeout = 2;
 
-	adi_num = phy->pcore_id;
 
 	memset((void *)ADC_DDR_BASEADDR, 0xff, WordsToRx*2);
 	Xil_DCacheFlush();
 
-	reset_dmarx(adi_num);
-	reset_dmatx(adi_num);
+	reset_dmarx(phy);
+	reset_dmatx(phy);
 
-	dac_init(phy, DATA_SEL_DMA);
+	dac_init(phy, DATA_SEL_DMA, 1);
 	sleep(1);
-	adc_capture(WordsToRx, ADC_DDR_BASEADDR, timeout, adi_num, 99);  // 99: do not activate adi2axis module
+	adc_capture(phy, WordsToRx, ADC_DDR_BASEADDR, timeout, 99);  // 99: do not activate adi2axis module
 
 	errors = CheckRxData_DMAloopback(1);
 	//ShowRxData();
@@ -127,7 +123,6 @@ void txrxtest_main(struct ad9361_rf_phy *phy, int no_shift)
 {
 	u8 			rx_clk_delay;
 	u8 			tx_clk_delay;
-	u8 			adi_num;
 	int			timeout = 2;
 	int 		errors;
 
@@ -138,7 +133,6 @@ void txrxtest_main(struct ad9361_rf_phy *phy, int no_shift)
 	uint32_t status;
 
 	//tx_clk_delay = 0x20;
-	adi_num = phy->pcore_id;
 
 	xil_printf("************ TXRXTEST START *********************\n\r");
 
@@ -160,25 +154,25 @@ void txrxtest_main(struct ad9361_rf_phy *phy, int no_shift)
 
 		//while(1)
 
-		reset_dmarx(adi_num);
-		reset_dmatx(adi_num);
+		reset_dmarx(phy);
+		reset_dmatx(phy);
 
 		if (no_shift)
-			dac_init(phy, DATA_SEL_DMA_NOSHIFT);
+			dac_init(phy, DATA_SEL_DMA_NOSHIFT, 1);
 		else
-			dac_init(phy, DATA_SEL_DMA);
+			dac_init(phy, DATA_SEL_DMA, 1);
 
 
 		sleep(1);
 
 		//dac_init(DATA_SEL_DDS);
-		adc_capture(WordsToRx, ADC_DDR_BASEADDR, timeout, adi_num, 0);
+		adc_capture(phy, WordsToRx, ADC_DDR_BASEADDR, timeout, 0);
 
-//		adc_read(0x0400, &status, adi_num);  xil_printf("REG_CHAN_CNTRL        : %02x \n\r", status);
-//		adc_read(0x0410, &status, adi_num);  xil_printf("REG_CHAN_CNTRL_1      : %02x \n\r", status);
-//		adc_read(0x0414, &status, adi_num);  xil_printf("REG_CHAN_CNTRL_2      : %02x \n\r", status);
-//		adc_read(0x0420, &status, adi_num);  xil_printf("REG_CHAN_USR_CNTRL_1  : %02x \n\r", status);
-//		adc_read(0x0424, &status, adi_num);  xil_printf("REG_CHAN_USR_CNTRL_2  : %02x \n\r", status);
+//		adc_read(phy, 0x0400, &status);  xil_printf("REG_CHAN_CNTRL        : %02x \n\r", status);
+//		adc_read(phy, 0x0410, &status);  xil_printf("REG_CHAN_CNTRL_1      : %02x \n\r", status);
+//		adc_read(phy, 0x0414, &status);  xil_printf("REG_CHAN_CNTRL_2      : %02x \n\r", status);
+//		adc_read(phy, 0x0420, &status);  xil_printf("REG_CHAN_USR_CNTRL_1  : %02x \n\r", status);
+//		adc_read(phy, 0x0424, &status);  xil_printf("REG_CHAN_USR_CNTRL_2  : %02x \n\r", status);
 //
 //		ShowTxData();
 
@@ -475,7 +469,6 @@ int CheckRxData_DMAloopback(int p)
 int get_eye_rx(struct ad9361_rf_phy *phy, u8 *delay_vec)
 {
 	u8		rx_clk_delay;
-	u8		adi_num;
 	uint32_t 	rx_data_clk;
 	int     eye_found = 0;
 	int     timeout = 2;
@@ -483,18 +476,21 @@ int get_eye_rx(struct ad9361_rf_phy *phy, u8 *delay_vec)
 					0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 					0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
+	int temp;
+
 	memset((void *)ADC_DDR_BASEADDR, 0x01, WordsToRx*8);
 	Xil_DCacheFlush();
 
 	for (rx_clk_delay = 0x00; rx_clk_delay < 0x10; rx_clk_delay = rx_clk_delay + 1)
 		delay_vec[rx_clk_delay] = 0;
 
-	adi_num = phy->pcore_id;
 
 	ad9361_spi_write(phy->spi, REG_BIST_CONFIG, 0X09);            // 0x09 for PRBS, 0x0B for tone
+	temp =  ad9361_spi_read(phy->spi, REG_BIST_CONFIG);
+	xil_printf("REG_BIST_CONFIG: %d \n\r", temp);
 
-//	ad9361_get_rx_sampling_freq (phy, &rx_data_clk);
-//	xil_printf("DATA CLK RATE: %d \n\r", rx_data_clk);
+	ad9361_get_rx_sampling_freq (phy, &rx_data_clk);
+	xil_printf("DATA CLK RATE: %d \n\r", rx_data_clk);
 
 //	main_xadcps();
 //	xil_printf ("ADI temperature: Raw: %d Corrected: %d Centigrade \n\r",ad9361_spi_read (REG_TEMPERATURE), ad9361_get_temp(phy));
@@ -505,9 +501,9 @@ int get_eye_rx(struct ad9361_rf_phy *phy, u8 *delay_vec)
 	{
 		ad9361_spi_write(phy->spi, REG_RX_CLOCK_DATA_DELAY, rx_clk_delay);
 
-		reset_dmarx(adi_num);
+		reset_dmarx(phy);
 
-		if (adc_capture(WordsToRx, ADC_DDR_BASEADDR, timeout, adi_num, 0) == -1)
+		if (adc_capture(phy, WordsToRx, ADC_DDR_BASEADDR, timeout, 0) == -1)
 		{
 			delay_vec[rx_clk_delay] = 1;
 			xil_printf ("*  ");
@@ -517,7 +513,7 @@ int get_eye_rx(struct ad9361_rf_phy *phy, u8 *delay_vec)
 		if (CheckRxData_PRBS() == -1)
 		{
 			delay_vec[rx_clk_delay] = 1;
-			xil_printf ("*  ");
+			xil_printf ("x  ");
 		}
 		else
 		{
@@ -539,9 +535,6 @@ void set_eye_rx(struct ad9361_rf_phy *phy, u8 *delay_vec)
 	u8		min_delay = 0;
 	u8		max_delay = 0;
 	u8		sel_delay = 0;
-	u8		adi_num;
-
-	adi_num = phy->pcore_id;
 
 	for (rx_clk_delay = 0x00; rx_clk_delay < 0x10; rx_clk_delay = rx_clk_delay + 1)
 	{
@@ -569,7 +562,6 @@ void set_eye_rx(struct ad9361_rf_phy *phy, u8 *delay_vec)
 int get_eye_tx(struct ad9361_rf_phy *phy, u8 *delay_vec)
 {
 	u8 			tx_clk_delay;
-	u8 			adi_num;
 	int 		eye_found = 0;
 	int 		timeout = 2;
 	char		received_cmd[30] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -577,7 +569,6 @@ int get_eye_tx(struct ad9361_rf_phy *phy, u8 *delay_vec)
 									0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
 	tx_clk_delay = 0x20;
-	adi_num = phy->pcore_id;
 
 	for (tx_clk_delay = 0x00; tx_clk_delay < 0x10; tx_clk_delay = tx_clk_delay + 1)
 		delay_vec[tx_clk_delay] = 0;
@@ -598,20 +589,20 @@ int get_eye_tx(struct ad9361_rf_phy *phy, u8 *delay_vec)
 
 		ad9361_spi_write(phy->spi, REG_TX_CLOCK_DATA_DELAY, tx_clk_delay<<4);
 
-		reset_dmarx(adi_num);
-		reset_dmatx(adi_num);
+		reset_dmarx(phy);
+		reset_dmatx(phy);
 
-		dac_init(phy, DATA_SEL_DMA);
+		dac_init(phy, DATA_SEL_DMA, 1);
 
 //ShowTxData();
 //xil_printf ("TX DELAY %02x \n\r", tx_clk_delay);
 sleep(1);  // wait for tx data to reach rx side
 //continue;
 //while(1){
-//adc_capture(WordsToRx*4, ADC_DDR_BASEADDR, adi_num);
+//adc_capture(phy, WordsToRx*4, ADC_DDR_BASEADDR);
 //}
 
-		if (adc_capture(WordsToRx, ADC_DDR_BASEADDR, timeout, adi_num, 0) == -1)
+		if (adc_capture(phy, WordsToRx, ADC_DDR_BASEADDR, timeout, 0) == -1)
 		{
 			delay_vec[tx_clk_delay] = 1;
 			continue;
@@ -644,9 +635,6 @@ void set_eye_tx(struct ad9361_rf_phy *phy, u8 *delay_vec)
 	u8		min_delay = 0;
 	u8		max_delay = 0;
 	u8		sel_delay = 0;
-	u8		adi_num;
-
-	adi_num = phy->pcore_id;
 
 //	xil_printf ("[");
 //	for (tx_clk_delay = 0x00; tx_clk_delay < 0x10; tx_clk_delay = tx_clk_delay + 1)

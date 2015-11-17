@@ -418,9 +418,9 @@ void vita_unpack_stat (u32 adi_num)
 
 #ifdef XPAR_AXIS_VITA49_PACK_1_BASEADDR
 // data start is triggered, and adi2axis block counts number of 64bit words before turning off data source
-void vita_pack_test_legacy (u32 adi_num, u32 stream_id, u32 pkt_size, u32 words_to_pack)
+void vita_pack_test_legacy (struct ad9361_rf_phy *phy, u32 stream_id, u32 pkt_size, u32 words_to_pack)
 {
-//	int adi_num = 0;
+	int adi_num = phy->id_no;
 	int temp;
 	int timeout = 10;
 	int vita_pack_base_addr;
@@ -459,7 +459,7 @@ void vita_pack_test_legacy (u32 adi_num, u32 stream_id, u32 pkt_size, u32 words_
 
     sleep(1);
 
-	if (adc_capture(words_to_pack, ADC_DDR_BASEADDR, timeout*2, adi_num, 0) == -1) {    //64 bit words (adi2axis)
+	if (adc_capture(phy, words_to_pack, ADC_DDR_BASEADDR, timeout*2, 0) == -1) {    //64 bit words (adi2axis)
 		xil_printf("rx dma timeout error\n\r");
 	};
 
@@ -471,9 +471,9 @@ void vita_pack_test_legacy (u32 adi_num, u32 stream_id, u32 pkt_size, u32 words_
 
 #ifdef XPAR_AXIS_VITA49_PACK_1_BASEADDR
 // data trigger controls both start and stop of data through timestamps
-void vita_pack_test_trig (u32 adi_num, u32 stream_id, u32 pkt_size, u32 words_to_pack)
+void vita_pack_test_trig (struct ad9361_rf_phy *phy, u32 stream_id, u32 pkt_size, u32 words_to_pack)
 {
-//	int adi_num = 0;
+	int adi_num = phy->id_no;
 	int temp;
 	int timeout = 10;
 	int vita_pack_base_addr;
@@ -512,7 +512,7 @@ void vita_pack_test_trig (u32 adi_num, u32 stream_id, u32 pkt_size, u32 words_to
     AXILITE_TEST_mWriteSlaveReg4 (vita_pack_base_addr, 0, words_to_pack);    //32-bit words
     AXILITE_TEST_mWriteSlaveReg0 (vita_pack_base_addr, 0, 0x01);
 
-	if (adc_capture(words_to_pack, ADC_DDR_BASEADDR, timeout*2, adi_num, 1) == -1) {    //64 bit words (adi2axis)
+	if (adc_capture(phy, words_to_pack, ADC_DDR_BASEADDR, timeout*2, 1) == -1) {    //64 bit words (adi2axis)
 		xil_printf("rx dma timeout error\n\r");
 	};
 
@@ -597,9 +597,9 @@ void vita_unpack_test (u32 adi_num, u32 stream_id, int length, struct ad9361_rf_
 
 
 #ifdef XPAR_AXIS_VITA49_PACK_1_BASEADDR
-void vita_endtoend_test (u32 adi_num, u32 srio_addr, u32 stream_id, u32 pkt_size, u32 words_to_pack, struct ad9361_rf_phy *phy)
+void vita_endtoend_test (struct ad9361_rf_phy *phy, u32 srio_addr, u32 stream_id, u32 pkt_size, u32 words_to_pack)
 {
-//	int adi_num = 0;
+	int adi_num = phy->id_no;
 	int temp;
 	int timeout = 10;
 
@@ -704,7 +704,7 @@ void vita_endtoend_test (u32 adi_num, u32 srio_addr, u32 stream_id, u32 pkt_size
 
 
     // why is this necessary?
-//	if (adc_capture(words_to_pack*2, ADC_DDR_BASEADDR, timeout*2, adi_num, 1) == -1) {
+//	if (adc_capture(phy, words_to_pack*2, ADC_DDR_BASEADDR, timeout*2, 1) == -1) {
 //		xil_printf("rx dma timeout error\n\r");
 //	};
 

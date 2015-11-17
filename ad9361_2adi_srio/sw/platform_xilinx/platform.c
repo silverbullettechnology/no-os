@@ -106,37 +106,32 @@ int32_t spi_init(uint32_t device_id,
 {
 
 	uint32_t base_addr	 = 0;
-	uint32_t control_val = 0;
+	uint32_t spi_options = 0;
 #ifdef _XPARAMETERS_PS_H_
-	uint8_t  byte		 = 0;
 
 	spi_config = XSpiPs_LookupConfig(device_id);
 	base_addr = spi_config->BaseAddress;
+
 	XSpiPs_CfgInitialize(&spi_instance, spi_config, base_addr);
 
-	control_val = XSPIPS_CR_SSFORCE_MASK |
-				  XSPIPS_CR_SSCTRL_MASK |
-				  4 << XSPIPS_CR_PRESC_SHIFT |
-				  (clk_pha ? XSPIPS_CR_CPHA_MASK : 0) |
-				  (clk_pol ? XSPIPS_CR_CPOL_MASK : 0) |
-				  XSPIPS_CR_MSTREN_MASK;
+	spi_options = XSPIPS_MASTER_OPTION |
+			(clk_pol ? XSPIPS_CLK_ACTIVE_LOW_OPTION : 0) |
+			(clk_pha ? XSPIPS_CLK_PHASE_1_OPTION : 0) |
+			XSPIPS_FORCE_SSELECT_OPTION;
 
-	XSpiPs_WriteReg(base_addr, XSPIPS_CR_OFFSET, control_val);
+	XSpiPs_SetOptions(&spi_instance, spi_options);
 
-	for(byte = 0; byte < 128; byte++)
-	{
-		XSpiPs_ReadReg(base_addr, XSPIPS_RXD_OFFSET);
-	}
+	XSpiPs_SetClkPrescaler(&spi_instance, XSPIPS_CLK_PRESCALE_256);
 #else
 	XSpi_Initialize(&spi_instance, device_id);
 	XSpi_Stop(&spi_instance);
 	spi_config = XSpi_LookupConfig(device_id);
 	base_addr = spi_config->BaseAddress;
 	XSpi_CfgInitialize(&spi_instance, spi_config, base_addr);
-	control_val = XSP_MASTER_OPTION |
+	spi_options = XSP_MASTER_OPTION |
 				  XSP_CLK_PHASE_1_OPTION |
 				  XSP_MANUAL_SSELECT_OPTION;
-	XSpi_SetOptions(&spi_instance, control_val);
+	XSpi_SetOptions(&spi_instance, spi_options);
 	XSpi_Start(&spi_instance);
 	XSpi_IntrGlobalDisable(&spi_instance);
 	XSpi_SetSlaveSelect(&spi_instance, 1);
@@ -147,63 +142,16 @@ int32_t spi_init(uint32_t device_id,
 /***************************************************************************//**
  * @brief spi_read
 *******************************************************************************/
-int32_t spi_read(uint8_t *data,
+int32_t spi_read(struct spi_device *spi,
+				 uint8_t *data,
 				 uint8_t bytes_number)
 {
-	uint32_t cnt		 = 0;
 #ifdef _XPARAMETERS_PS_H_
-	uint32_t base_addr	 = 0;
-	uint32_t control_val = 0;
-	uint32_t status	  	 = 0;
+	XSpiPs_SetSlaveSelect(&spi_instance, (spi->id_no == 0 ? 0 : 1));
 
-	base_addr = spi_config->BaseAddress;
-	control_val = XSpiPs_ReadReg(base_addr, XSPIPS_CR_OFFSET);
-
-//	XSpiPs_WriteReg(base_addr, XSPIPS_CR_OFFSET,
-//					control_val & ~(1 << XSPIPS_CR_SSCTRL_SHIFT));
-
-	if (spi_ss == 0)
-		XSpiPs_WriteReg(base_addr, XSPIPS_CR_OFFSET,
-					control_val & ~(1 << XSPIPS_CR_SSCTRL_SHIFT));    // slave 0 selected
-
-	if (spi_ss == 1)
-		XSpiPs_WriteReg(base_addr, XSPIPS_CR_OFFSET,
-					control_val & ~(2 << XSPIPS_CR_SSCTRL_SHIFT));    // slave 1 selected
-
-//	xil_printf ("*****   Slave select:  %x/%x \n\r", XSpiPs_GetSlaveSelect(&spi_instance), spi_ss);
-
-	XSpiPs_WriteReg(base_addr, XSPIPS_TXWR_OFFSET, 0x01);
-
-	XSpiPs_WriteReg(base_addr, XSPIPS_SR_OFFSET, XSPIPS_IXR_TXOW_MASK);
-	XSpiPs_WriteReg(base_addr, XSPIPS_IER_OFFSET, XSPIPS_IXR_TXOW_MASK);
-
-	while(cnt < bytes_number)
-	{
-		XSpiPs_WriteReg(base_addr, XSPIPS_TXD_OFFSET, data[cnt]);
-		cnt++;
-	}
-
-	XSpiPs_WriteReg(base_addr, XSPIPS_ER_OFFSET, XSPIPS_ER_ENABLE_MASK);
-
-	do
-	{
-		status = XSpiPs_ReadReg(base_addr, XSPIPS_SR_OFFSET);
-	}
-	while((status & XSPIPS_IXR_TXOW_MASK) == 0x0);
-
-	XSpiPs_WriteReg(base_addr, XSPIPS_SR_OFFSET, XSPIPS_IXR_TXOW_MASK);
-
-	XSpiPs_WriteReg(base_addr, XSPIPS_CR_OFFSET, control_val);
-
-	cnt = 0;
-	while(cnt < bytes_number)
-	{
-		data[cnt] = XSpiPs_ReadReg(base_addr, XSPIPS_RXD_OFFSET);
-		cnt++;
-	}
-
-	XSpiPs_WriteReg(base_addr, XSPIPS_ER_OFFSET, 0x0);
+	XSpiPs_PolledTransfer(&spi_instance, data, data, bytes_number);
 #else
+	uint32_t cnt = 0;
 #ifdef XPAR_AXI_SPI_0_DEVICE_ID
 	uint8_t send_buffer[20];
 
@@ -273,7 +221,7 @@ int spi_write_then_read(struct spi_device *spi,
 	{
 		buffer[byte] = (unsigned char)txbuf[byte];
 	}
-	spi_read(buffer, n_tx + n_rx);
+	spi_read(spi, buffer, n_tx + n_rx);
 	for(byte = n_tx; byte < n_tx + n_rx; byte++)
 	{
 		rxbuf[byte - n_tx] = buffer[byte];
@@ -403,23 +351,26 @@ unsigned long msleep_interruptible(unsigned int msecs)
 *******************************************************************************/
 void axiadc_init(struct ad9361_rf_phy *phy)
 {
-	u8 adi_num;
-	adi_num = phy->pcore_id;
-
 	adc_init(phy);
+	dac_init(phy, DATA_SEL_DDS, 0);
+}
 
+/***************************************************************************//**
+ * @brief axiadc_post_setup
+*******************************************************************************/
+int axiadc_post_setup(struct ad9361_rf_phy *phy)
+{
+	return ad9361_post_setup(phy);
 }
 
 /***************************************************************************//**
  * @brief axiadc_read
 *******************************************************************************/
-unsigned int axiadc_read(struct axiadc_state *st, unsigned long reg, struct ad9361_rf_phy *phy)
+unsigned int axiadc_read(struct axiadc_state *st, unsigned long reg)
 {
 	uint32_t val;
-	u8 adi_num;
-	adi_num = phy->pcore_id;
 
-	adc_read(reg, &val, adi_num);
+	adc_read(st->phy, reg, &val);
 
 	return val;
 }
@@ -427,30 +378,27 @@ unsigned int axiadc_read(struct axiadc_state *st, unsigned long reg, struct ad93
 /***************************************************************************//**
  * @brief axiadc_write
 *******************************************************************************/
-void axiadc_write(struct axiadc_state *st, unsigned reg, unsigned val, struct ad9361_rf_phy *phy)
+void axiadc_write(struct axiadc_state *st, unsigned reg, unsigned val)
 {
-	u8 adi_num;
-	adi_num = phy->pcore_id;
-	adc_write(reg, val, adi_num);
-
+	adc_write(st->phy, reg, val);
 }
 
 /***************************************************************************//**
  * @brief axiadc_set_pnsel
 *******************************************************************************/
-int axiadc_set_pnsel(struct axiadc_state *st, int channel, enum adc_pn_sel sel, struct ad9361_rf_phy *phy)
+int axiadc_set_pnsel(struct axiadc_state *st, int channel, enum adc_pn_sel sel)
 {
 	unsigned reg;
 
-	uint32_t version = axiadc_read(st, 0x4000, phy);
+	uint32_t version = axiadc_read(st, 0x4000);
 
 	if (PCORE_VERSION_MAJOR(version) > 7) {
-		reg = axiadc_read(st, ADI_REG_CHAN_CNTRL_3(channel), phy);
+		reg = axiadc_read(st, ADI_REG_CHAN_CNTRL_3(channel));
 		reg &= ~ADI_ADC_PN_SEL(~0);
 		reg |= ADI_ADC_PN_SEL(sel);
-		axiadc_write(st, ADI_REG_CHAN_CNTRL_3(channel), reg, phy);
+		axiadc_write(st, ADI_REG_CHAN_CNTRL_3(channel), reg);
 	} else {
-		reg = axiadc_read(st, ADI_REG_CHAN_CNTRL(channel), phy);
+		reg = axiadc_read(st, ADI_REG_CHAN_CNTRL(channel));
 
 		if (sel == ADC_PN_CUSTOM) {
 			reg |= ADI_PN_SEL;
@@ -462,8 +410,25 @@ int axiadc_set_pnsel(struct axiadc_state *st, int channel, enum adc_pn_sel sel, 
 			reg &= ~ADI_PN_SEL;
 		}
 
-		axiadc_write(st, ADI_REG_CHAN_CNTRL(channel), reg, phy);
+		axiadc_write(st, ADI_REG_CHAN_CNTRL(channel), reg);
 	}
 
 	return 0;
+}
+
+/***************************************************************************//**
+ * @brief axiadc_idelay_set
+*******************************************************************************/
+void axiadc_idelay_set(struct axiadc_state *st,
+				unsigned lane, unsigned val)
+{
+	if (PCORE_VERSION_MAJOR(st->pcore_version) > 8) {
+		axiadc_write(st, ADI_REG_DELAY(lane), val);
+	} else {
+		axiadc_write(st, ADI_REG_DELAY_CNTRL, 0);
+		axiadc_write(st, ADI_REG_DELAY_CNTRL,
+				ADI_DELAY_ADDRESS(lane)
+				| ADI_DELAY_WDATA(val)
+				| ADI_DELAY_SEL);
+	}
 }

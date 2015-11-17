@@ -1053,6 +1053,8 @@
 /*
 *	REG_TPM_MODE_ENABLE
 */
+#define TX2_MON_ENABLE		     	 (1 << 7) /* Tx2 Monitor Enable */
+#define TX1_MON_ENABLE		     	 (1 << 5) /* Tx1 Monitor Enable */
 #define ONE_SHOT_MODE			     (1 << 6) /* One Shot Mode */
 #define TX_MON_DURATION(x)		     (((x) & 0xF) << 0) /* Tx Mon Duration<3:0> */
 
@@ -1412,7 +1414,7 @@
 *	REG_SMALL_LMT_OVERLOAD_THRESH
 */
 #define FORCE_PD_RESET_RX2		     (1 << 7) /* Force PD Reset Rx2 */
-#define FOR_PD_RESET_RX1			     (1 << 6) /* For PD Reset Rx1 */
+#define FORCE_PD_RESET_RX1			     (1 << 6) /* Force PD Reset Rx1 */
 #define SMALL_LMT_OVERLOAD_THRESH(x)	     (((x) & 0x3F) << 0) /* Small LMT Overload Threshold<5:0> */
 
 /*
@@ -2815,6 +2817,7 @@
 #define MAX_LPF_GAIN			24
 #define MAX_DIG_GAIN			31
 
+#define MAX_BBPLL_FREF			70000000UL /* 70 MHz */
 #define MIN_BBPLL_FREQ			715000000UL /* 715 MHz */
 #define MAX_BBPLL_FREQ			1430000000UL /* 1430 MHz */
 #define MAX_BBPLL_DIV			64
@@ -2829,9 +2832,11 @@
 #define RFPLL_MODULUS			8388593UL
 #define BBPLL_MODULUS			2088960UL
 
+#define MAX_SYNTH_FREF			80000000UL /* 80 MHz */
+#define MIN_SYNTH_FREF			10000000UL /* 10 MHz */
 #define MIN_VCO_FREQ_HZ			6000000000ULL
 #define MAX_CARRIER_FREQ_HZ		6000000000ULL
-#define MIN_CARRIER_FREQ_HZ		47000000ULL
+#define MIN_CARRIER_FREQ_HZ		70000000ULL
 
 /*
 *	Driver
@@ -3042,6 +3047,7 @@ struct elna_control {
 	uint32_t			settling_delay_ns;
 	bool			elna_1_control_en; /* GPO0 */
 	bool			elna_2_control_en; /* GPO1 */
+	bool			elna_in_gaintable_all_index_en;
 };
 
 struct auxadc_control {
@@ -3051,6 +3057,29 @@ struct auxadc_control {
 	bool			periodic_temp_measuremnt;
 	uint32_t			auxadc_clock_rate;
 	uint32_t			auxadc_decimation;
+};
+
+struct gpo_control {
+	bool gpo0_inactive_state_high_en;
+	bool gpo1_inactive_state_high_en;
+	bool gpo2_inactive_state_high_en;
+	bool gpo3_inactive_state_high_en;
+	bool gpo0_slave_rx_en;
+	bool gpo0_slave_tx_en;
+	bool gpo1_slave_rx_en;
+	bool gpo1_slave_tx_en;
+	bool gpo2_slave_rx_en;
+	bool gpo2_slave_tx_en;
+	bool gpo3_slave_rx_en;
+	bool gpo3_slave_tx_en;
+	uint8_t gpo0_rx_delay_us;
+	uint8_t gpo0_tx_delay_us;
+	uint8_t gpo1_rx_delay_us;
+	uint8_t gpo1_tx_delay_us;
+	uint8_t gpo2_rx_delay_us;
+	uint8_t gpo2_tx_delay_us;
+	uint8_t gpo3_rx_delay_us;
+	uint8_t gpo3_tx_delay_us;
 };
 
 struct tx_monitor_control {
@@ -3100,6 +3129,7 @@ enum ad9361_clkout {
 struct ad9361_phy_platform_data {
 	bool			rx2tx2;
 	bool			fdd;
+	bool			fdd_independent_mode;
 	bool			split_gt;
 	bool 			use_extclk;
 	bool			ensm_pin_pulse_mode;
@@ -3111,17 +3141,23 @@ struct ad9361_phy_platform_data {
 	bool			use_ext_rx_lo;
 	bool			use_ext_tx_lo;
 	bool			rx1rx2_phase_inversion_en;
+	bool			qec_tracking_slow_mode_en;
 	uint8_t			dc_offset_update_events;
 	uint8_t			dc_offset_attenuation_high;
 	uint8_t			dc_offset_attenuation_low;
 	uint8_t			rf_dc_offset_count_high;
 	uint8_t			rf_dc_offset_count_low;
+	uint8_t			dig_interface_tune_skipmode;
+	uint8_t			dig_interface_tune_fir_disable;
 	uint32_t			dcxo_coarse;
 	uint32_t			dcxo_fine;
 	uint32_t			rf_rx_input_sel;
 	uint32_t			rf_tx_output_sel;
+	uint32_t		rx1tx1_mode_use_rx_num;
+	uint32_t		rx1tx1_mode_use_tx_num;
 	uint32_t		rx_path_clks[NUM_RX_CLOCKS];
 	uint32_t		tx_path_clks[NUM_TX_CLOCKS];
+	uint32_t		trx_synth_max_fref;
 	uint64_t			rx_synth_freq;
 	uint64_t			tx_synth_freq;
 	uint32_t			rf_rx_bandwidth_Hz;
@@ -3141,6 +3177,7 @@ struct ad9361_phy_platform_data {
 	struct elna_control	elna_ctrl;
 	struct auxadc_control	auxadc_ctrl;
 	struct auxdac_control	auxdac_ctrl;
+	struct gpo_control	gpo_ctrl;
 	struct tx_monitor_control txmon_ctrl;
 
 	int32_t 			gpio_resetb;
@@ -3193,6 +3230,7 @@ enum {
 	LUT_FTDD_80,
 	LUT_FTDD_ENT,
 };
+
 
 #define SYNTH_LUT_SIZE	53
 
@@ -3361,7 +3399,7 @@ static const struct SynthLUT SynthLUT_FDD[LUT_FTDD_ENT][SYNTH_LUT_SIZE] = {
 		{ 5997, 10, 3, 7, 3, 15, 12, 20, 13, 4, 13, 15, 9 },
 	} };
 
-static struct SynthLUT SynthLUT_TDD[LUT_FTDD_ENT][SYNTH_LUT_SIZE] = {
+static const struct SynthLUT SynthLUT_TDD[LUT_FTDD_ENT][SYNTH_LUT_SIZE] = {
 	{
 		{ 12605, 13, 0, 4, 0, 14, 0, 10, 12, 3, 14, 15, 11 },   /* 40 MHz */
 		{ 12245, 13, 0, 4, 0, 13, 0, 10, 12, 3, 14, 15, 11 },
@@ -3671,13 +3709,20 @@ static const uint8_t gm_st_gain[16] = { 0x78, 0x74, 0x70, 0x6C, 0x68, 0x64, 0x60
 static const uint8_t gm_st_ctrl[16] = { 0x0, 0xD, 0x15, 0x1B, 0x21, 0x25, 0x29,
 0x2C, 0x2F, 0x31, 0x33, 0x34, 0x35, 0x3A, 0x3D, 0x3E };
 
-
-static const int8_t lna_table[] = { 6, 17, 19, 25 };
+static const int8_t lna_table[RXGAIN_TBLS_END][4] = {
+	{5, 17, 19, 24}, {3, 14, 17, 21}, {-4, 10, 13, 14}};
 static const int8_t tia_table[] = { -6, 0 };
-static const int8_t mixer_table[] = { 0, 5, 11, 16,
-17, 18, 19, 20,
-21, 22, 23, 24,
-25, 26, 27, 28 };
+static const int8_t mixer_table[RXGAIN_TBLS_END][16] = {
+	{0, 3, 9, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25},
+	{0, 3, 9, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26},
+	{0, 3, 8, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24}};
+
+static const uint32_t gain_step_calib_reg_val[4][5] = {
+	{0xC0, 0x2E, 0x10, 0x06, 0x00},	// LO Frequency Range: 600 to 1300 MHz
+	{0xC0, 0x2C, 0x10, 0x06, 0x00},	// LO Frequency Range: 1300 to 3300 MHz
+	{0xB8, 0x2C, 0x10, 0x06, 0x00},	// LO Frequency Range: 2700 to 4100 MHz
+	{0xA0, 0x24, 0x10, 0x06, 0x00},	// LO Frequency Range: 4000 to 6000 MHz
+};
 
 enum ad9361_clocks {
 	BB_REFCLK,
@@ -3694,6 +3739,10 @@ enum ad9361_clocks {
 	T1_CLK,
 	CLKTF_CLK,
 	TX_SAMPL_CLK,
+	RX_RFPLL_INT,
+	TX_RFPLL_INT,
+	RX_RFPLL_DUMMY,
+	TX_RFPLL_DUMMY,
 	RX_RFPLL,
 	TX_RFPLL,
 	NUM_AD9361_CLKS,
@@ -3720,6 +3769,15 @@ struct ad9361_fastlock {
 	uint8_t save_profile;
 	uint8_t current_profile[2];
 	struct ad9361_fastlock_entry entry[2][8];
+};
+
+enum dig_tune_flags {
+	BE_VERBOSE = 1,
+	BE_MOREVERBOSE = 2,
+	DO_IDELAY = 4,
+	DO_ODELAY = 8,
+	SKIP_STORE_RESULT = 16,
+	RESTORE_DEFAULT = 32,
 };
 
 enum ad9361_bist_mode {
@@ -3751,26 +3809,33 @@ struct dds_state
 	enum dds_data_select	cached_datasel[8];
 	uint32_t				*dac_clk;
 	uint32_t				pcore_version;
-	uint32_t				num_dds_channels;
+	uint32_t				num_buf_channels;
 	bool					enable;
 	bool					rx2tx2;
 };
 
 struct ad9361_rf_phy {
+	uint8_t 		id_no;
 	struct spi_device 	*spi;
 	struct clk 		*clk_refin;
 	struct clk 		*clks[NUM_AD9361_CLKS];
 	struct refclk_scale *ref_clk_scale[NUM_AD9361_CLKS];
 	struct clk_onecell_data	clk_data;
+	uint32_t (*ad9361_rfpll_ext_recalc_rate)(struct refclk_scale *clk_priv);
+	int32_t (*ad9361_rfpll_ext_round_rate)(struct refclk_scale *clk_priv, uint32_t rate);
+	int32_t (*ad9361_rfpll_ext_set_rate)(struct refclk_scale *clk_priv, uint32_t rate);
 	struct ad9361_phy_platform_data *pdata;
 	uint8_t 			prev_ensm_state;
 	uint8_t			curr_ensm_state;
+	uint8_t			cached_rx_rfpll_div;
+	uint8_t			cached_tx_rfpll_div;
 	struct rx_gain_info rx_gain[RXGAIN_TBLS_END];
 	enum rx_gain_table_name current_table;
 	bool 			ensm_pin_ctl_en;
 
 	bool			auto_cal_en;
 	uint64_t			last_tx_quad_cal_freq;
+	uint32_t			last_tx_quad_cal_phase;
 	uint32_t		flags;
 	uint32_t		cal_threshold_freq;
 	uint32_t			current_rx_bw_Hz;
@@ -3780,6 +3845,11 @@ struct ad9361_rf_phy {
 	bool			bypass_rx_fir;
 	bool			bypass_tx_fir;
 	bool			rx_eq_2tx;
+	bool			filt_valid;
+	uint32_t		filt_rx_path_clks[NUM_RX_CLOCKS];
+	uint32_t		filt_tx_path_clks[NUM_TX_CLOCKS];
+	uint32_t		filt_rx_bw_Hz;
+	uint32_t		filt_tx_bw_Hz;
 	uint8_t			tx_fir_int;
 	uint8_t			tx_fir_ntaps;
 	uint8_t			rx_fir_dec;
@@ -3788,6 +3858,7 @@ struct ad9361_rf_phy {
 	bool			rfdc_track_en;
 	bool			bbdc_track_en;
 	bool			quad_track_en;
+	bool			txmon_tdd_en;
 	uint16_t 			auxdac1_value;
 	uint16_t 			auxdac2_value;
 	struct ad9361_fastlock	fastlock;
@@ -3801,8 +3872,8 @@ struct ad9361_rf_phy {
 	uint32_t				bist_tone_level_dB;
 	uint32_t				bist_tone_mask;
 
-	struct dds_state dds_st;
-	uint8_t			pcore_id;
+//	struct dds_state dds_st;
+//	uint8_t			pcore_id;
 
 };
 
@@ -3834,6 +3905,8 @@ enum {
 /******************************************************************************/
 /************************ Functions Declarations ******************************/
 /******************************************************************************/
+int32_t ad9361_spi_readm(struct spi_device *spi, uint32_t reg,
+	uint8_t *rbuf, uint32_t num);
 int32_t ad9361_spi_read(struct spi_device *spi, uint32_t reg);
 int32_t ad9361_spi_write(struct spi_device *spi,
 	uint32_t reg, uint32_t val);
@@ -3841,7 +3914,7 @@ int32_t ad9361_reset(struct ad9361_rf_phy *phy);
 int32_t register_clocks(struct ad9361_rf_phy *phy);
 int32_t ad9361_init_gain_tables(struct ad9361_rf_phy *phy);
 int32_t ad9361_setup(struct ad9361_rf_phy *phy);
-int32_t ad9361_post_setup(struct ad9361_rf_phy *phy);
+//int32_t ad9361_post_setup(struct ad9361_rf_phy *phy);
 int32_t ad9361_set_ensm_mode(struct ad9361_rf_phy *phy, bool fdd, bool pinctrl);
 int32_t ad9361_ensm_set_state(struct ad9361_rf_phy *phy, uint8_t ensm_state,
 	bool pinctrl);
@@ -3885,12 +3958,18 @@ int32_t ad9361_bbpll_round_rate(struct refclk_scale *clk_priv, uint32_t rate,
 	uint32_t *prate);
 int32_t ad9361_bbpll_set_rate(struct refclk_scale *clk_priv, uint32_t rate,
 	uint32_t parent_rate);
-uint32_t ad9361_rfpll_recalc_rate(struct refclk_scale *clk_priv,
+uint32_t ad9361_rfpll_int_recalc_rate(struct refclk_scale *clk_priv,
 	uint32_t parent_rate);
-int32_t ad9361_rfpll_round_rate(struct refclk_scale *clk_priv, uint32_t rate,
+int32_t ad9361_rfpll_int_round_rate(struct refclk_scale *clk_priv, uint32_t rate,
 	uint32_t *prate);
-int32_t ad9361_rfpll_set_rate(struct refclk_scale *clk_priv, uint32_t rate,
+int32_t ad9361_rfpll_int_set_rate(struct refclk_scale *clk_priv, uint32_t rate,
 	uint32_t parent_rate);
+uint32_t ad9361_rfpll_dummy_recalc_rate(struct refclk_scale *clk_priv);
+int32_t ad9361_rfpll_dummy_set_rate(struct refclk_scale *clk_priv, uint32_t rate);
+uint32_t ad9361_rfpll_recalc_rate(struct refclk_scale *clk_priv);
+int32_t ad9361_rfpll_round_rate(struct refclk_scale *clk_priv, uint32_t rate);
+int32_t ad9361_rfpll_set_rate(struct refclk_scale *clk_priv, uint32_t rate);
+int32_t ad9361_clk_mux_set_parent(struct refclk_scale *clk_priv, uint8_t index);
 int32_t ad9361_tracking_control(struct ad9361_rf_phy *phy, bool bbdc_track,
 	bool rfdc_track, bool rxquad_track);
 int32_t ad9361_bist_loopback(struct ad9361_rf_phy *phy, int32_t mode);
@@ -3904,6 +3983,30 @@ void ad9361_get_bist_tone(struct ad9361_rf_phy *phy,
 						 enum ad9361_bist_mode *mode, uint32_t *freq_Hz,
 						 uint32_t *level_dB, uint32_t *mask);
 
-int32_t ad9361_pp_port_setup(struct ad9361_rf_phy *phy, bool restore_c3);
+//int32_t ad9361_pp_port_setup(struct ad9361_rf_phy *phy, bool restore_c3);
 
+int32_t ad9361_rf_port_setup(struct ad9361_rf_phy *phy, bool is_out,
+				    uint32_t rx_inputs, uint32_t txb);
+int32_t ad9361_mcs(struct ad9361_rf_phy *phy, int32_t step);
+int32_t ad9361_do_calib_run(struct ad9361_rf_phy *phy, uint32_t cal, int32_t arg);
+int32_t ad9361_fastlock_store(struct ad9361_rf_phy *phy, bool tx, uint32_t profile);
+int32_t ad9361_fastlock_recall(struct ad9361_rf_phy *phy, bool tx, uint32_t profile);
+int32_t ad9361_fastlock_load(struct ad9361_rf_phy *phy, bool tx,
+	uint32_t profile, uint8_t *values);
+int32_t ad9361_fastlock_save(struct ad9361_rf_phy *phy, bool tx,
+	uint32_t profile, uint8_t *values);
+void ad9361_ensm_force_state(struct ad9361_rf_phy *phy, uint8_t ensm_state);
+void ad9361_ensm_restore_prev_state(struct ad9361_rf_phy *phy);
+int32_t ad9361_set_trx_clock_chain_freq(struct ad9361_rf_phy *phy,
+	uint32_t freq);
+int32_t ad9361_find_opt(uint8_t *field, uint32_t size, uint32_t *ret_start);
+//static int32_t ad9361_hdl_loopback(struct ad9361_rf_phy *phy, bool enable);
+//int32_t ad9361_dig_interface_timing_analysis(struct ad9361_rf_phy *phy,
+//	char *buf, int32_t buflen);
+//int32_t ad9361_dig_tune(struct ad9361_rf_phy *phy, uint32_t max_freq,
+//						enum dig_tune_flags flags);
+int32_t ad9361_en_dis_tx(struct ad9361_rf_phy *phy, uint32_t tx_if, uint32_t enable);
+int32_t ad9361_en_dis_rx(struct ad9361_rf_phy *phy, uint32_t rx_if, uint32_t enable);
+int32_t ad9361_1rx1tx_channel_map(struct ad9361_rf_phy *phy, bool tx, int32_t channel);
+int32_t ad9361_rssi_gain_step_calib(struct ad9361_rf_phy *phy);
 #endif
